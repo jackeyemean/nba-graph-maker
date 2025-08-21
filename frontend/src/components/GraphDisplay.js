@@ -101,13 +101,13 @@ const GraphDisplay = ({ graphData, template }) => {
            display: true,
            title: {
              display: true,
-             text: graphData.xAxisLabel || 'X-Axis',
+             text: getStatLabel(graphData.metadata?.xAxisType) || 'X-Axis',
            },
            min: minX !== Infinity ? minX : undefined,
            ticks: {
              callback: function(value) {
                // Format years as "XXXX" without comma
-               if (graphData.xAxisLabel === 'Season') {
+               if (graphData.metadata?.xAxisType === 'year') {
                  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "");
                }
                return value;
@@ -118,7 +118,7 @@ const GraphDisplay = ({ graphData, template }) => {
            display: true,
            title: {
              display: true,
-             text: graphData.yAxisLabel || 'Y-Axis',
+             text: getStatLabel(graphData.metadata?.yAxisType) || 'Y-Axis',
            },
          },
        },
@@ -199,7 +199,7 @@ const GraphDisplay = ({ graphData, template }) => {
            display: true,
            title: {
              display: true,
-             text: graphData.xAxisLabel || 'Statistic Value',
+             text: getStatLabel(graphData.metadata?.stat) || 'Statistic Value',
            },
          },
          y: {
@@ -220,6 +220,10 @@ const GraphDisplay = ({ graphData, template }) => {
     if (!graphData.points || graphData.points.length === 0) {
       return <div className="no-data">No data available for scatter plot</div>;
     }
+
+    console.log('Scatter plot - graphData:', graphData);
+    console.log('Scatter plot - xAxisLabel:', graphData.xAxisLabel);
+    console.log('Scatter plot - yAxisLabel:', graphData.yAxisLabel);
 
     const chartData = {
       datasets: [
@@ -264,22 +268,22 @@ const GraphDisplay = ({ graphData, template }) => {
             },
           },
       },
-      scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: graphData.xAxisLabel || 'X-Axis',
-          },
-        },
-        y: {
-          display: true,
-          title: {
-            display: true,
-            text: graphData.yAxisLabel || 'Y-Axis',
-          },
-        },
-      },
+             scales: {
+         x: {
+           display: true,
+           title: {
+             display: true,
+             text: getStatLabel(graphData.metadata?.xAxisStat) || 'X-Axis',
+           },
+         },
+         y: {
+           display: true,
+           title: {
+             display: true,
+             text: getStatLabel(graphData.metadata?.yAxisStat) || 'Y-Axis',
+           },
+         },
+       },
     };
 
     return <Scatter data={chartData} options={options} />;
@@ -295,6 +299,47 @@ const GraphDisplay = ({ graphData, template }) => {
       `rgba(255, 159, 64, ${alpha})`,
     ];
     return colors[index % colors.length];
+  };
+
+  const getStatLabel = (statName) => {
+    if (!statName) return 'Statistic';
+    
+    switch (statName.toLowerCase()) {
+      case 'age':
+        return 'Age';
+      case 'year':
+      case 'season':
+        return 'Season';
+      case 'points':
+      case 'ppg':
+        return 'Points Per Game';
+      case 'assists':
+        return 'Assists Per Game';
+      case 'rebounds':
+        return 'Rebounds Per Game';
+      case 'steals':
+        return 'Steals Per Game';
+      case 'blocks':
+        return 'Blocks Per Game';
+      case 'minutes_per_game':
+      case 'mpg':
+        return 'Minutes Per Game';
+      case 'field_goal_percentage':
+      case 'fg%':
+        return 'Field Goal %';
+      case 'three_point_percentage':
+      case '3p%':
+        return '3-Point %';
+      case 'free_throw_percentage':
+      case 'ft%':
+        return 'Free Throw %';
+      case 'turnovers':
+        return 'Turnovers Per Game';
+      case 'personal_fouls':
+        return 'Personal Fouls Per Game';
+      default:
+        return statName;
+    }
   };
 
   const renderChart = () => {

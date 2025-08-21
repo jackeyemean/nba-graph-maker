@@ -101,11 +101,7 @@ public class GraphService {
         System.out.println("players: " + request.getPlayers());
         System.out.println("====================");
         
-        // Set dynamic labels based on graph type and selected stats
-        String title = request.getTitle();
-        String xAxisLabel = request.getXAxisLabel();
-        String yAxisLabel = request.getYAxisLabel();
-        
+        // Set default values for missing fields
         switch (request.getGraphType()) {
             case "line":
                 // Use default values if not provided
@@ -114,21 +110,11 @@ public class GraphService {
                 
                 if (xAxisType == null) {
                     xAxisType = "age";
-                    request.setXAxisType(xAxisType); // Update the request object
+                    request.setXAxisType(xAxisType);
                 }
                 if (yAxisType == null) {
                     yAxisType = "points";
-                    request.setYAxisType(yAxisType); // Update the request object
-                }
-                
-                if (title == null) {
-                    title = "Player Comparison";
-                }
-                if (xAxisLabel == null) {
-                    xAxisLabel = getAxisLabel(xAxisType);
-                }
-                if (yAxisLabel == null) {
-                    yAxisLabel = getAxisLabel(yAxisType);
+                    request.setYAxisType(yAxisType);
                 }
                 break;
                          case "histogram":
@@ -136,26 +122,7 @@ public class GraphService {
                  String stat = request.getStat();
                  if (stat == null) {
                      stat = "points";
-                     request.setStat(stat); // Update the request object
-                 }
-                 
-                 if (title == null) {
-                     if (request.getYears() != null && !request.getYears().isEmpty()) {
-                         String yearsStr = request.getYears().stream()
-                             .map(String::valueOf)
-                             .collect(Collectors.joining(", "));
-                         title = yearsStr + " " + getStatLabel(stat) + " Distribution";
-                     } else if (request.getYear() != null) {
-                         title = request.getYear() + " " + getStatLabel(stat) + " Distribution";
-                     } else {
-                         title = getStatLabel(stat) + " Distribution";
-                     }
-                 }
-                 if (xAxisLabel == null) {
-                     xAxisLabel = getStatLabel(stat);
-                 }
-                 if (yAxisLabel == null) {
-                     yAxisLabel = "Players";
+                     request.setStat(stat);
                  }
                  break;
             case "scatter":
@@ -168,33 +135,19 @@ public class GraphService {
                 
                 if (xAxisStat == null) {
                     xAxisStat = "steals";
-                    request.setXAxisStat(xAxisStat); // Update the request object
+                    request.setXAxisStat(xAxisStat);
                     System.out.println("Scatter plot - Using default xAxisStat: " + xAxisStat);
                 }
                 if (yAxisStat == null) {
                     yAxisStat = "blocks";
-                    request.setYAxisStat(yAxisStat); // Update the request object
+                    request.setYAxisStat(yAxisStat);
                     System.out.println("Scatter plot - Using default yAxisStat: " + yAxisStat);
                 }
                 
                 System.out.println("Scatter plot - Final xAxisStat: " + xAxisStat);
                 System.out.println("Scatter plot - Final yAxisStat: " + yAxisStat);
-                
-                if (title == null) {
-                    title = getStatLabel(xAxisStat) + " vs " + getStatLabel(yAxisStat);
-                }
-                if (xAxisLabel == null) {
-                    xAxisLabel = getStatLabel(xAxisStat);
-                }
-                if (yAxisLabel == null) {
-                    yAxisLabel = getStatLabel(yAxisStat);
-                }
                 break;
         }
-        
-        response.setTitle(title);
-        response.setXAxisLabel(xAxisLabel);
-        response.setYAxisLabel(yAxisLabel);
 
         switch (request.getGraphType()) {
             case "line":
@@ -275,6 +228,13 @@ public class GraphService {
         
         System.out.println("Total datasets created: " + datasets.size());
         response.setDatasets(datasets);
+        
+        // Add metadata for frontend axis labels
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("xAxisType", request.getXAxisType());
+        metadata.put("yAxisType", request.getYAxisType());
+        response.setMetadata(metadata);
+        
         return response;
     }
 
@@ -375,9 +335,10 @@ public class GraphService {
         response.setBinEdges(binEdges);
         response.setBinCounts(binCounts);
         
-        // Add player names to metadata for tooltips
+        // Add metadata for frontend axis labels and tooltips
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("binPlayers", binPlayers);
+        metadata.put("stat", request.getStat());
         response.setMetadata(metadata);
         
         return response;
@@ -427,6 +388,13 @@ public class GraphService {
         
         System.out.println("Scatter plot: Created " + points.size() + " points");
         response.setPoints(points);
+        
+        // Add metadata for frontend axis labels
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("xAxisStat", xAxisStat);
+        metadata.put("yAxisStat", yAxisStat);
+        response.setMetadata(metadata);
+        
         return response;
     }
 
