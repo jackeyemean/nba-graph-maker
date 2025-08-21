@@ -1,0 +1,109 @@
+.graph-display {
+  margin-top: 30px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.chart-container {
+  position: relative;
+  height: 500px;
+  padding: 20px;
+  background: white;
+}
+
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-size: 18px;
+  font-style: italic;
+}
+
+.chart-metadata {
+  padding: 20px;
+  border-top: 1px solid #e1e5e9;
+  background: #f8f9fa;
+}
+
+.chart-metadata h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.metadata-item {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+  font-size: 14px;
+}
+
+.metadata-item strong {
+  color: #333;
+}
+
+.sql-query {
+  border-top: 1px solid #e1e5e9;
+  background: #f8f9fa;
+}
+
+.sql-query summary {
+  padding: 16px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.sql-query summary:hover {
+  background: #f8f9fa;
+}
+
+.sql-query pre {
+  margin: 0;
+  padding: 20px;
+  background: #2d3748;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Chart.js customization */
+.chart-container canvas {
+  max-height: 100% !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .chart-container {
+    height: 400px;
+    padding: 16px;
+  }
+  
+  .metadata-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sql-query pre {
+    font-size: 11px;
+    padding: 16px;
+  }
+}
+

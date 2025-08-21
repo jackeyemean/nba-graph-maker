@@ -5,10 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.context.annotation.PropertySource;
-
 @SpringBootApplication
-@PropertySource(value = "file:.env", factory = me.paulschwarz.springdotenv.DotenvPropertySourceFactory.class)
 public class NbaGraphGeneratorApplication {
 
     public static void main(String[] args) {
