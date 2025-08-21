@@ -27,7 +27,9 @@ public class GraphRequest {
     private Double maxValue;
     
     // Scatter plot specific
+    @JsonProperty("xAxisStat")
     private String xAxisStat;
+    @JsonProperty("yAxisStat")
     private String yAxisStat;
     
     // Filtering options

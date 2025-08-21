@@ -502,17 +502,26 @@ public class GraphService {
         
         // For histograms and scatter plots, use multi-team overall stats (filter out individual team records)
         // This ensures we don't double-count players who played for multiple teams
+        
+        // First, identify players who have multi-team overall records
+        Set<String> playersWithMultiTeamRecords = data.stream()
+            .filter(stat -> stat.getTeam() != null && stat.getTeam().contains("TM"))
+            .map(stat -> stat.getPlayer() + "_" + stat.getYear())
+            .collect(Collectors.toSet());
+        
+        // Then filter the data
         data = data.stream()
             .filter(stat -> {
                 // Keep records where team is null (single team) or contains "TM" (multi-team overall)
-                // Filter out individual team records for multi-team players
                 if (stat.getTeam() == null) {
                     return true; // Single team player
                 }
                 if (stat.getTeam().contains("TM")) {
                     return true; // Multi-team overall stats
                 }
-                return false; // Filter out individual team records for multi-team players
+                // For individual team records, check if this player has a multi-team overall record
+                String playerYearKey = stat.getPlayer() + "_" + stat.getYear();
+                return !playersWithMultiTeamRecords.contains(playerYearKey); // Keep if no multi-team record exists
             })
             .collect(Collectors.toList());
         
