@@ -48,49 +48,43 @@ def create_database():
     
     return True
 
-def create_tables():
-    """Create the necessary tables"""
+def drop_existing_tables():
+    """Drop all existing tables to start fresh"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
-        # Create players table
+        # Drop all tables if they exist
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS players (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+            DROP TABLE IF EXISTS nba_stats CASCADE;
         """)
         
-        # Create teams table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS teams (
-                id SERIAL PRIMARY KEY,
-                abbreviation VARCHAR(10) UNIQUE NOT NULL,
-                name VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
         
-        # Create seasons table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS seasons (
-                id SERIAL PRIMARY KEY,
-                year INTEGER UNIQUE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        print("Dropped existing tables")
+        return True
         
-        # Create player_stats table (main table for all statistics)
+    except Exception as e:
+        print(f"Error dropping tables: {e}")
+        return False
+
+def create_unified_table():
+    """Create one unified table for all NBA statistics"""
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        # Create the unified NBA stats table
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS player_stats (
+            CREATE TABLE nba_stats (
                 id SERIAL PRIMARY KEY,
-                player_id INTEGER REFERENCES players(id),
-                team_id INTEGER REFERENCES teams(id),
-                season_id INTEGER REFERENCES seasons(id),
-                position VARCHAR(10),
+                year INTEGER NOT NULL,
+                player VARCHAR(255) NOT NULL,
                 age INTEGER,
+                team VARCHAR(10),
+                position VARCHAR(10),
                 games_played INTEGER,
                 games_started INTEGER,
                 minutes_per_game DECIMAL(4,1),
@@ -117,26 +111,26 @@ def create_tables():
                 personal_fouls DECIMAL(4,1),
                 points DECIMAL(4,1),
                 awards TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(player_id, team_id, season_id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
         # Create indexes for better performance
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_stats_player_id ON player_stats(player_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_stats_season_id ON player_stats(season_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_stats_team_id ON player_stats(team_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_stats_position ON player_stats(position)")
+        cursor.execute("CREATE INDEX idx_nba_stats_year ON nba_stats(year)")
+        cursor.execute("CREATE INDEX idx_nba_stats_player ON nba_stats(player)")
+        cursor.execute("CREATE INDEX idx_nba_stats_team ON nba_stats(team)")
+        cursor.execute("CREATE INDEX idx_nba_stats_position ON nba_stats(position)")
+        cursor.execute("CREATE INDEX idx_nba_stats_year_player ON nba_stats(year, player)")
         
         conn.commit()
         cursor.close()
         conn.close()
         
-        print("Tables created successfully")
+        print("Unified NBA stats table created successfully")
         return True
         
     except Exception as e:
-        print(f"Error creating tables: {e}")
+        print(f"Error creating unified table: {e}")
         return False
 
 def extract_year_from_filename(filename):
@@ -174,7 +168,7 @@ def clean_value(value):
     return value
 
 def import_data():
-    """Import all CSV data into the database"""
+    """Import all CSV data into the unified table"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -184,6 +178,8 @@ def import_data():
         csv_files.sort()  # Sort to process in chronological order
         
         print(f"Found {len(csv_files)} CSV files to import")
+        
+        total_records = 0
         
         for csv_file in csv_files:
             year = extract_year_from_filename(csv_file)
@@ -196,36 +192,15 @@ def import_data():
             # Read CSV file
             df = pd.read_csv(csv_file)
             
-            # Insert season if not exists
-            cursor.execute("INSERT INTO seasons (year) VALUES (%s) ON CONFLICT (year) DO NOTHING", (year,))
-            cursor.execute("SELECT id FROM seasons WHERE year = %s", (year,))
-            season_id = cursor.fetchone()[0]
-            
             # Process each row
             for _, row in df.iterrows():
-                player_name = row['Player']
-                
-                # Insert player if not exists
-                cursor.execute("INSERT INTO players (name) VALUES (%s) ON CONFLICT DO NOTHING", (player_name,))
-                cursor.execute("SELECT id FROM players WHERE name = %s", (player_name,))
-                player_id = cursor.fetchone()[0]
-                
-                # Insert team if not exists
-                team_abbr = row.get('Team', '')
-                if team_abbr and team_abbr != '':
-                    cursor.execute("INSERT INTO teams (abbreviation) VALUES (%s) ON CONFLICT (abbreviation) DO NOTHING", (team_abbr,))
-                    cursor.execute("SELECT id FROM teams WHERE abbreviation = %s", (team_abbr,))
-                    team_id = cursor.fetchone()[0]
-                else:
-                    team_id = None
-                
-                # Prepare data for insertion
+                # Prepare data for insertion - handle missing columns gracefully
                 stats_data = {
-                    'player_id': player_id,
-                    'team_id': team_id,
-                    'season_id': season_id,
-                    'position': clean_value(row.get('Pos')),
+                    'year': year,
+                    'player': row['Player'],
                     'age': clean_value(row.get('Age')),
+                    'team': clean_value(row.get('Team')),
+                    'position': clean_value(row.get('Pos')),
                     'games_played': clean_value(row.get('G')),
                     'games_started': clean_value(row.get('GS')),
                     'minutes_per_game': clean_value(row.get('MP')),
@@ -256,8 +231,8 @@ def import_data():
                 
                 # Insert player stats
                 cursor.execute("""
-                    INSERT INTO player_stats (
-                        player_id, team_id, season_id, position, age, games_played, games_started,
+                    INSERT INTO nba_stats (
+                        year, player, age, team, position, games_played, games_started,
                         minutes_per_game, field_goals_made, field_goals_attempted, field_goal_percentage,
                         three_pointers_made, three_pointers_attempted, three_point_percentage,
                         two_pointers_made, two_pointers_attempted, two_point_percentage,
@@ -265,7 +240,7 @@ def import_data():
                         free_throw_percentage, offensive_rebounds, defensive_rebounds, total_rebounds,
                         assists, steals, blocks, turnovers, personal_fouls, points, awards
                     ) VALUES (
-                        %(player_id)s, %(team_id)s, %(season_id)s, %(position)s, %(age)s, %(games_played)s,
+                        %(year)s, %(player)s, %(age)s, %(team)s, %(position)s, %(games_played)s,
                         %(games_started)s, %(minutes_per_game)s, %(field_goals_made)s, %(field_goals_attempted)s,
                         %(field_goal_percentage)s, %(three_pointers_made)s, %(three_pointers_attempted)s,
                         %(three_point_percentage)s, %(two_pointers_made)s, %(two_pointers_attempted)s,
@@ -273,44 +248,18 @@ def import_data():
                         %(free_throws_attempted)s, %(free_throw_percentage)s, %(offensive_rebounds)s,
                         %(defensive_rebounds)s, %(total_rebounds)s, %(assists)s, %(steals)s, %(blocks)s,
                         %(turnovers)s, %(personal_fouls)s, %(points)s, %(awards)s
-                    ) ON CONFLICT (player_id, team_id, season_id) DO UPDATE SET
-                        position = EXCLUDED.position,
-                        age = EXCLUDED.age,
-                        games_played = EXCLUDED.games_played,
-                        games_started = EXCLUDED.games_started,
-                        minutes_per_game = EXCLUDED.minutes_per_game,
-                        field_goals_made = EXCLUDED.field_goals_made,
-                        field_goals_attempted = EXCLUDED.field_goals_attempted,
-                        field_goal_percentage = EXCLUDED.field_goal_percentage,
-                        three_pointers_made = EXCLUDED.three_pointers_made,
-                        three_pointers_attempted = EXCLUDED.three_pointers_attempted,
-                        three_point_percentage = EXCLUDED.three_point_percentage,
-                        two_pointers_made = EXCLUDED.two_pointers_made,
-                        two_pointers_attempted = EXCLUDED.two_pointers_attempted,
-                        two_point_percentage = EXCLUDED.two_point_percentage,
-                        effective_field_goal_percentage = EXCLUDED.effective_field_goal_percentage,
-                        free_throws_made = EXCLUDED.free_throws_made,
-                        free_throws_attempted = EXCLUDED.free_throws_attempted,
-                        free_throw_percentage = EXCLUDED.free_throw_percentage,
-                        offensive_rebounds = EXCLUDED.offensive_rebounds,
-                        defensive_rebounds = EXCLUDED.defensive_rebounds,
-                        total_rebounds = EXCLUDED.total_rebounds,
-                        assists = EXCLUDED.assists,
-                        steals = EXCLUDED.steals,
-                        blocks = EXCLUDED.blocks,
-                        turnovers = EXCLUDED.turnovers,
-                        personal_fouls = EXCLUDED.personal_fouls,
-                        points = EXCLUDED.points,
-                        awards = EXCLUDED.awards
+                    )
                 """, stats_data)
+                
+                total_records += 1
             
             conn.commit()
-            print(f"Completed processing {csv_file}")
+            print(f"Completed processing {csv_file} - {len(df)} records")
         
         cursor.close()
         conn.close()
         
-        print("Data import completed successfully!")
+        print(f"Data import completed successfully! Total records: {total_records}")
         return True
         
     except Exception as e:
@@ -323,28 +272,45 @@ def show_database_stats():
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
-        # Get counts
-        cursor.execute("SELECT COUNT(*) FROM players")
-        player_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM teams")
-        team_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM seasons")
-        season_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM player_stats")
-        stats_count = cursor.fetchone()[0]
+        # Get total count
+        cursor.execute("SELECT COUNT(*) FROM nba_stats")
+        total_count = cursor.fetchone()[0]
         
         # Get year range
-        cursor.execute("SELECT MIN(year), MAX(year) FROM seasons")
+        cursor.execute("SELECT MIN(year), MAX(year) FROM nba_stats")
         year_range = cursor.fetchone()
         
+        # Get unique players count
+        cursor.execute("SELECT COUNT(DISTINCT player) FROM nba_stats")
+        unique_players = cursor.fetchone()[0]
+        
+        # Get unique teams count
+        cursor.execute("SELECT COUNT(DISTINCT team) FROM nba_stats WHERE team IS NOT NULL")
+        unique_teams = cursor.fetchone()[0]
+        
+        # Get years count
+        cursor.execute("SELECT COUNT(DISTINCT year) FROM nba_stats")
+        years_count = cursor.fetchone()[0]
+        
         print("\n=== Database Statistics ===")
-        print(f"Players: {player_count}")
-        print(f"Teams: {team_count}")
-        print(f"Seasons: {season_count} ({year_range[0]} - {year_range[1]})")
-        print(f"Player Statistics Records: {stats_count}")
+        print(f"Total Records: {total_count:,}")
+        print(f"Unique Players: {unique_players:,}")
+        print(f"Unique Teams: {unique_teams}")
+        print(f"Years: {years_count} ({year_range[0]} - {year_range[1]})")
+        
+        # Show sample of recent data
+        print("\n=== Sample Recent Data ===")
+        cursor.execute("""
+            SELECT year, player, team, position, points, games_played 
+            FROM nba_stats 
+            WHERE year >= 2020 
+            ORDER BY year DESC, points DESC 
+            LIMIT 10
+        """)
+        
+        sample_data = cursor.fetchall()
+        for row in sample_data:
+            print(f"{row[0]}: {row[1]} ({row[2]}, {row[3]}) - {row[4]} PPG in {row[5]} games")
         
         cursor.close()
         conn.close()
@@ -354,32 +320,38 @@ def show_database_stats():
 
 def main():
     """Main function to set up the database and import data"""
-    print("Starting NBA Database Setup...")
+    print("Starting NBA Database Reset and Setup...")
     
     # Step 1: Create database
     if not create_database():
         print("Failed to create database. Exiting.")
         return
     
-    # Step 2: Create tables
-    if not create_tables():
-        print("Failed to create tables. Exiting.")
+    # Step 2: Drop existing tables
+    if not drop_existing_tables():
+        print("Failed to drop existing tables. Exiting.")
         return
     
-    # Step 3: Import data
+    # Step 3: Create unified table
+    if not create_unified_table():
+        print("Failed to create unified table. Exiting.")
+        return
+    
+    # Step 4: Import data
     if not import_data():
         print("Failed to import data. Exiting.")
         return
     
-    # Step 4: Show statistics
+    # Step 5: Show statistics
     show_database_stats()
     
-    print("\nDatabase setup completed successfully!")
+    print("\nDatabase reset and setup completed successfully!")
     print("\nYou can now connect to the database using:")
     print(f"Host: {DB_CONFIG['host']}")
     print(f"Database: {DB_CONFIG['database']}")
     print(f"User: {DB_CONFIG['user']}")
     print(f"Port: {DB_CONFIG['port']}")
+    print("\nThe unified table 'nba_stats' contains all NBA data with a 'year' column.")
 
 if __name__ == "__main__":
     main()
