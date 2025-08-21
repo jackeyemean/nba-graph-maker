@@ -7,6 +7,12 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
   const [playerSearchTerm, setPlayerSearchTerm] = useState('');
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
+  const [yearSearchTerm, setYearSearchTerm] = useState('');
+  const [filteredYears, setFilteredYears] = useState([]);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [positionSearchTerm, setPositionSearchTerm] = useState('');
+  const [filteredPositions, setFilteredPositions] = useState([]);
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
 
   useEffect(() => {
     if (template) {
@@ -14,6 +20,8 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       fetchOptions();
     }
   }, [template]);
+
+
 
   const initializeFormData = () => {
     const initialData = {
@@ -48,25 +56,28 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
 
   const fetchOptions = async () => {
     try {
-      const [statsResponse, playersResponse, teamsResponse, yearsResponse] = await Promise.all([
+      const [statsResponse, playersResponse, teamsResponse, yearsResponse, positionsResponse] = await Promise.all([
         fetch('http://localhost:8080/api/graph/stats/options'),
         fetch('http://localhost:8080/api/graph/players'),
         fetch('http://localhost:8080/api/graph/teams'),
-        fetch('http://localhost:8080/api/graph/years')
+        fetch('http://localhost:8080/api/graph/years'),
+        fetch('http://localhost:8080/api/graph/positions')
       ]);
 
-      const [stats, players, teams, years] = await Promise.all([
+      const [stats, players, teams, years, positions] = await Promise.all([
         statsResponse.json(),
         playersResponse.json(),
         teamsResponse.json(),
-        yearsResponse.json()
+        yearsResponse.json(),
+        positionsResponse.json()
       ]);
 
       setOptions({
         stats,
         players,
         teams,
-        years: years.sort((a, b) => b - a) // Sort years descending
+        years: years.sort((a, b) => b - a), // Sort years descending
+        positions
       });
     } catch (error) {
       console.error('Failed to fetch options:', error);
@@ -95,11 +106,26 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
   };
 
   const handlePlayerSearch = (searchTerm, fieldName) => {
-    setPlayerSearchTerm(searchTerm);
-    
+    // Always update the search term state first
+    if (fieldName === 'years') {
+      setYearSearchTerm(searchTerm);
+    } else if (fieldName === 'positions') {
+      setPositionSearchTerm(searchTerm);
+    } else {
+      setPlayerSearchTerm(searchTerm);
+    }
+
     if (searchTerm.length < 1) {
-      setFilteredPlayers([]);
-      setShowPlayerDropdown(false);
+      if (fieldName === 'years') {
+        setFilteredYears([]);
+        setShowYearDropdown(false);
+      } else if (fieldName === 'positions') {
+        setFilteredPositions([]);
+        setShowPositionDropdown(false);
+      } else {
+        setFilteredPlayers([]);
+        setShowPlayerDropdown(false);
+      }
       return;
     }
 
@@ -107,6 +133,8 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
     let searchOptions = [];
     if (fieldName === 'years') {
       searchOptions = options.years || [];
+    } else if (fieldName === 'positions') {
+      searchOptions = options.positions || [];
     } else {
       searchOptions = options.players || [];
     }
@@ -115,8 +143,16 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       option.toString().toLowerCase().includes(searchTerm.toLowerCase())
     ).slice(0, 10); // Limit to 10 results
 
-    setFilteredPlayers(filtered);
-    setShowPlayerDropdown(filtered.length > 0);
+    if (fieldName === 'years') {
+      setFilteredYears(filtered);
+      setShowYearDropdown(filtered.length > 0);
+    } else if (fieldName === 'positions') {
+      setFilteredPositions(filtered);
+      setShowPositionDropdown(filtered.length > 0);
+    } else {
+      setFilteredPlayers(filtered);
+      setShowPlayerDropdown(filtered.length > 0);
+    }
   };
 
   const addPlayer = (playerName, fieldName) => {
@@ -129,6 +165,15 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
         const newYearList = [...yearList, playerName.toString()];
         handleInputChange('years', newYearList.join(', '));
       }
+    } else if (fieldName === 'positions') {
+      // Handle positions selection
+      const currentPositions = formData.positions || '';
+      const positionList = currentPositions ? currentPositions.split(',').map(p => p.trim()).filter(p => p) : [];
+      
+      if (!positionList.includes(playerName)) {
+        const newPositionList = [...positionList, playerName];
+        handleInputChange('positions', newPositionList.join(', '));
+      }
     } else {
       // Handle players selection
       const currentPlayers = formData.players || '';
@@ -140,8 +185,17 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       }
     }
     
-    setPlayerSearchTerm('');
-    setShowPlayerDropdown(false);
+    // Clear search term and close dropdown
+    if (fieldName === 'years') {
+      setYearSearchTerm('');
+      setShowYearDropdown(false);
+    } else if (fieldName === 'positions') {
+      setPositionSearchTerm('');
+      setShowPositionDropdown(false);
+    } else {
+      setPlayerSearchTerm('');
+      setShowPlayerDropdown(false);
+    }
   };
 
   const removePlayer = (playerToRemove, fieldName) => {
@@ -149,6 +203,10 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       const currentYears = formData.years || '';
       const yearList = currentYears.split(',').map(y => y.trim()).filter(y => y !== playerToRemove);
       handleInputChange('years', yearList.join(', '));
+    } else if (fieldName === 'positions') {
+      const currentPositions = formData.positions || '';
+      const positionList = currentPositions.split(',').map(p => p.trim()).filter(p => p !== playerToRemove);
+      handleInputChange('positions', positionList.join(', '));
     } else {
       const currentPlayers = formData.players || '';
       const playerList = currentPlayers.split(',').map(p => p.trim()).filter(p => p !== playerToRemove);
@@ -166,6 +224,9 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       }
       if (processedData.years && typeof processedData.years === 'string') {
         processedData.years = processedData.years.split(',').map(y => parseInt(y.trim())).filter(y => !isNaN(y));
+      }
+      if (processedData.positions && typeof processedData.positions === 'string') {
+        processedData.positions = processedData.positions.split(',').map(p => p.trim()).filter(p => p);
       }
       
       // Ensure we have the current form values
@@ -246,53 +307,83 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
           </select>
         );
 
-      case 'multiselect':
-        if (field.name === 'players' || field.name === 'years') {
+                  case 'multiselect':
+        if (field.name === 'players' || field.name === 'years' || field.name === 'positions') {
           return (
             <div className="multiselect-container">
               <div className="search-container">
-                                 <input
+                <input
                    type="text"
-                   placeholder={field.name === 'years' ? "Search years..." : "Search players..."}
-                   value={playerSearchTerm}
+                   placeholder={
+                     field.name === 'years' ? "Search years..." : 
+                     field.name === 'positions' ? "Search positions..." : 
+                     "Search players..."
+                   }
+                   value={
+                     field.name === 'years' ? yearSearchTerm :
+                     field.name === 'positions' ? positionSearchTerm :
+                     playerSearchTerm
+                   }
                    onChange={(e) => handlePlayerSearch(e.target.value, field.name)}
                    onFocus={() => {
-                     if (playerSearchTerm.length >= 1) {
-                       setShowPlayerDropdown(true);
+                     const currentSearchTerm = 
+                       field.name === 'years' ? yearSearchTerm :
+                       field.name === 'positions' ? positionSearchTerm :
+                       playerSearchTerm;
+                     if (currentSearchTerm.length >= 1) {
+                       if (field.name === 'years') {
+                         setShowYearDropdown(true);
+                       } else if (field.name === 'positions') {
+                         setShowPositionDropdown(true);
+                       } else {
+                         setShowPlayerDropdown(true);
+                       }
                      }
                    }}
                   onBlur={() => {
                     // Delay hiding dropdown to allow clicking on options
-                    setTimeout(() => setShowPlayerDropdown(false), 200);
+                    setTimeout(() => {
+                      if (field.name === 'years') {
+                        setShowYearDropdown(false);
+                      } else if (field.name === 'positions') {
+                        setShowPositionDropdown(false);
+                      } else {
+                        setShowPlayerDropdown(false);
+                      }
+                    }, 200);
                   }}
                 />
-                {showPlayerDropdown && (
+                {(field.name === 'years' ? showYearDropdown : 
+                  field.name === 'positions' ? showPositionDropdown : 
+                  showPlayerDropdown) && (
                   <div className="player-dropdown">
-                                         {filteredPlayers.map((player, index) => (
+                    {(field.name === 'years' ? filteredYears : 
+                      field.name === 'positions' ? filteredPositions : 
+                      filteredPlayers).map((item, index) => (
                        <div
                          key={index}
                          className="player-option"
-                         onClick={() => addPlayer(player, field.name)}
+                         onClick={() => addPlayer(item, field.name)}
                        >
-                         {player}
+                         {item}
                        </div>
                      ))}
                   </div>
                 )}
               </div>
-                             <div className="selected-items">
-                 {value.split(',').filter(p => p.trim()).map((player, index) => (
-                   <span key={index} className="selected-item">
-                     {player.trim()}
-                     <button
-                       type="button"
-                       onClick={() => removePlayer(player.trim(), field.name)}
-                     >
-                       ×
-                     </button>
-                   </span>
-                 ))}
-               </div>
+              <div className="selected-items">
+                {value.split(',').filter(p => p.trim()).map((item, index) => (
+                  <span key={index} className="selected-item">
+                    {item.trim()}
+                    <button
+                      type="button"
+                      onClick={() => removePlayer(item.trim(), field.name)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           );
         }

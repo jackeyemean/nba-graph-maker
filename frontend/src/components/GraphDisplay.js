@@ -104,7 +104,12 @@ const GraphDisplay = ({ graphData, template }) => {
              text: getStatLabel(graphData.metadata?.xAxisType) || 'X-Axis',
            },
            min: minX !== Infinity ? minX : undefined,
+           grid: {
+             display: true,
+             drawOnChartArea: true,
+           },
            ticks: {
+             stepSize: 1, // Show every year
              callback: function(value) {
                // Format years as "XXXX" without comma
                if (graphData.metadata?.xAxisType === 'year') {

@@ -39,9 +39,7 @@ public class GraphService {
         List<TemplateInfo.FieldInfo> playerFields = Arrays.asList(
             new TemplateInfo.FieldInfo("players", "Players", "multiselect", "LeBron James,Stephen Curry"),
             new TemplateInfo.FieldInfo("xAxisType", "X-Axis", "select", "age"),
-            new TemplateInfo.FieldInfo("yAxisType", "Y-Axis", "select", "points"),
-            new TemplateInfo.FieldInfo("minGamesPlayed", "Minimum Games Played", "number", "10"),
-            new TemplateInfo.FieldInfo("minMinutesPerGame", "Minimum Minutes Per Game", "number", "10")
+            new TemplateInfo.FieldInfo("yAxisType", "Y-Axis", "select", "points")
         );
         playerComparison.setFields(playerFields);
         TEMPLATES.put("player_comparison", playerComparison);
@@ -56,7 +54,8 @@ public class GraphService {
         
         List<TemplateInfo.FieldInfo> histogramFields = Arrays.asList(
             new TemplateInfo.FieldInfo("years", "Seasons", "multiselect", "1996,1997,1998"),
-            new TemplateInfo.FieldInfo("stat", "Statistic", "select", "points"),
+            new TemplateInfo.FieldInfo("positions", "Positions", "multiselect", "PG,SG,SF,PF,C"),
+            new TemplateInfo.FieldInfo("stat", "X-Axis", "select", "points"),
             new TemplateInfo.FieldInfo("binCount", "Number of Bins", "number", "20"),
             new TemplateInfo.FieldInfo("minGamesPlayed", "Minimum Games Played", "number", "10"),
             new TemplateInfo.FieldInfo("minMinutesPerGame", "Minimum Minutes Per Game", "number", "10")
@@ -74,8 +73,9 @@ public class GraphService {
         
         List<TemplateInfo.FieldInfo> scatterFields = Arrays.asList(
             new TemplateInfo.FieldInfo("years", "Seasons", "multiselect", "2013,2014,2015"),
-            new TemplateInfo.FieldInfo("xAxisStat", "X-Axis Statistic", "select", "steals"),
-            new TemplateInfo.FieldInfo("yAxisStat", "Y-Axis Statistic", "select", "blocks"),
+            new TemplateInfo.FieldInfo("positions", "Positions", "multiselect", "PG,SG,SF,PF,C"),
+            new TemplateInfo.FieldInfo("xAxisStat", "X-Axis", "select", "steals"),
+            new TemplateInfo.FieldInfo("yAxisStat", "Y-Axis", "select", "blocks"),
             new TemplateInfo.FieldInfo("minGamesPlayed", "Minimum Games Played", "number", "10"),
             new TemplateInfo.FieldInfo("minMinutesPerGame", "Minimum Minutes Per Game", "number", "10")
         );
@@ -430,8 +430,26 @@ public class GraphService {
         }
         
         // For line graphs, always use multi-team overall stats (filter out individual team records)
+        // First, identify players who have multi-team overall records
+        Set<String> playersWithMultiTeamRecords = data.stream()
+            .filter(stat -> stat.getTeam() != null && stat.getTeam().contains("TM"))
+            .map(stat -> stat.getPlayer() + "_" + stat.getYear())
+            .collect(Collectors.toSet());
+        
+        // Then filter the data
         data = data.stream()
-            .filter(stat -> stat.getTeam() == null || !stat.getTeam().contains("TM"))
+            .filter(stat -> {
+                // Keep records where team is null (single team) or contains "TM" (multi-team overall)
+                if (stat.getTeam() == null) {
+                    return true; // Single team player
+                }
+                if (stat.getTeam().contains("TM")) {
+                    return true; // Multi-team overall stats
+                }
+                // For individual team records, check if this player has a multi-team overall record
+                String playerYearKey = stat.getPlayer() + "_" + stat.getYear();
+                return !playersWithMultiTeamRecords.contains(playerYearKey); // Keep if no multi-team record exists
+            })
             .collect(Collectors.toList());
         
         return data;
@@ -454,6 +472,14 @@ public class GraphService {
                 .filter(stat -> stat.getMinutesPerGame() != null && stat.getMinutesPerGame() >= request.getMinMinutesPerGame())
                 .collect(Collectors.toList());
             System.out.println("getSeasonData: After filtering by minutes, " + data.size() + " records remain");
+        }
+        
+        // Apply position filter if specified
+        if (request.getPositions() != null && !request.getPositions().isEmpty()) {
+            data = data.stream()
+                .filter(stat -> stat.getPosition() != null && request.getPositions().contains(stat.getPosition()))
+                .collect(Collectors.toList());
+            System.out.println("getSeasonData: After filtering by positions, " + data.size() + " records remain");
         }
         
         // Debug: Show some examples of multi-team records
@@ -635,5 +661,9 @@ public class GraphService {
 
     public List<Integer> getYears() {
         return playerStatsRepository.findAllYears();
+    }
+
+    public List<String> getPositions() {
+        return playerStatsRepository.findAllPositions();
     }
 }

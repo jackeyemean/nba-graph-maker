@@ -104,5 +104,15 @@ public class GraphController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    @GetMapping("/positions")
+    public ResponseEntity<List<String>> getPositions() {
+        try {
+            List<String> positions = graphService.getPositions();
+            return ResponseEntity.ok(positions);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }
 

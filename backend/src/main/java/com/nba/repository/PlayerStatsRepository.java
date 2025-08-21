@@ -62,4 +62,8 @@ public interface PlayerStatsRepository extends JpaRepository<PlayerStats, Long> 
     // Find player career stats including multi-team seasons
     @Query("SELECT ps FROM PlayerStats ps WHERE ps.player = :playerName ORDER BY ps.year")
     List<PlayerStats> findPlayerAllStats(@Param("playerName") String playerName);
+    
+    // Find all unique positions
+    @Query("SELECT DISTINCT ps.position FROM PlayerStats ps WHERE ps.position IS NOT NULL ORDER BY ps.position")
+    List<String> findAllPositions();
 }
