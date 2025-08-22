@@ -3,6 +3,7 @@ import './App.css';
 import TemplateSelector from './components/TemplateSelector';
 import GraphForm from './components/GraphForm';
 import GraphDisplay from './components/GraphDisplay';
+import { TEMPLATES } from './constants';
 
 function App() {
   const [templates, setTemplates] = useState([]);
@@ -11,21 +12,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch available templates on component mount
+  // Use hardcoded templates instead of API call
   useEffect(() => {
-    fetchTemplates();
+    setTemplates(Object.values(TEMPLATES));
   }, []);
-
-  const fetchTemplates = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/graph/templates');
-      const data = await response.json();
-      setTemplates(data);
-    } catch (err) {
-      console.error('Failed to fetch templates:', err);
-      setError('Failed to load templates');
-    }
-  };
 
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
