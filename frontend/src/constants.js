@@ -12,7 +12,7 @@ export const TEMPLATES = {
   },
   season_distribution: {
     id: 'season_distribution',
-    name: 'Season Distribution',
+    name: 'Histogram',
     description: 'Analyze the distribution of statistics across seasons',
     graphType: 'histogram',
     fields: [
@@ -29,7 +29,7 @@ export const TEMPLATES = {
   },
   season_correlation: {
     id: 'season_correlation', 
-    name: 'Season Correlation',
+    name: 'Scatter Plot',
     description: 'Find correlations and outliers between different statistics',
     graphType: 'scatter',
     fields: [
@@ -76,7 +76,7 @@ export const generateYears = () => {
 
 export const generateAgeRanges = () => {
   const ages = ['All'];
-  for (let i = 17; i <= 44; i++) {
+  for (let i = 18; i <= 44; i++) {
     ages.push(i.toString());
   }
   return ages;

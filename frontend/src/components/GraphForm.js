@@ -45,13 +45,26 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
 
     // Initialize season range for range slider
     if (template.fields && template.fields.some(field => field.name === 'years' && field.type === 'range')) {
-      setSeasonRange([1950, 2025]);
-      // Initialize years field with the full range
-      const years = [];
-      for (let year = 1950; year <= 2025; year++) {
-        years.push(year);
+      // Find the years field and get its default value
+      const yearsField = template.fields.find(field => field.name === 'years' && field.type === 'range');
+      if (yearsField && yearsField.defaultValue) {
+        const [minYear, maxYear] = yearsField.defaultValue.split(',').map(y => parseInt(y.trim()));
+        setSeasonRange([minYear, maxYear]);
+        // Initialize years field with the default range
+        const years = [];
+        for (let year = minYear; year <= maxYear; year++) {
+          years.push(year);
+        }
+        initialData.years = years.join(', ');
+      } else {
+        // Fallback to 1985-2025 if no default specified
+        setSeasonRange([1985, 2025]);
+        const years = [];
+        for (let year = 1985; year <= 2025; year++) {
+          years.push(year);
+        }
+        initialData.years = years.join(', ');
       }
-      initialData.years = years.join(', ');
     }
 
     // Set default values from template

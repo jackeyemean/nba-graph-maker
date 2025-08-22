@@ -163,12 +163,12 @@
 }
 
 .player-option.selected {
-  background: #555;
+  background: #6c757d;
   color: white;
 }
 
 .player-option.selected:hover {
-  background: #777;
+  background: #545b62;
   color: white;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .selected-item {
-  background: #555;
+  background: #6c757d;
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -336,7 +336,7 @@
 }
 
 .generate-button {
-  background: #555;
+  background: #6c757d;
   color: white;
   border: none;
   padding: 12px 32px;
@@ -349,7 +349,7 @@
 }
 
 .generate-button:hover:not(:disabled) {
-  background: #777;
+  background: #545b62;
 }
 
 .generate-button:disabled {
