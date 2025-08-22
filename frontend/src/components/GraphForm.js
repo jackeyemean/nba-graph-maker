@@ -25,6 +25,7 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
   const [showTeamsFilterDropdown, setShowTeamsFilterDropdown] = useState(false);
   const [seasonRange, setSeasonRange] = useState([1950, 2025]);
 
+
   useEffect(() => {
     if (template) {
       initializeFormData();
@@ -412,6 +413,28 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
     }
   };
 
+  // Helper function to identify advanced filters
+  const isAdvancedFilter = (fieldName) => {
+    const advancedFilters = ['positions', 'awards', 'teamsFilter', 'ageRange', 'minGamesPlayed', 'minMinutesPerGame'];
+    return advancedFilters.includes(fieldName);
+  };
+
+  // Helper function to separate basic and advanced fields
+  const separateFields = (fields) => {
+    const basicFields = [];
+    const advancedFields = [];
+    
+    fields.forEach(field => {
+      if (isAdvancedFilter(field.name)) {
+        advancedFields.push(field);
+      } else {
+        basicFields.push(field);
+      }
+    });
+    
+    return { basicFields, advancedFields };
+  };
+
   const renderField = (field) => {
     const value = formData[field.name] || '';
 
@@ -516,7 +539,7 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
                        }
                     }}
                                      onBlur={(e) => {
-                     // Delay hiding dropdown to allow clicking on options
+                     // Minimal delay to allow clicking on options
                      setTimeout(() => {
                        // Check if the newly focused element is within the same dropdown
                        const currentContainer = e.target.closest('.multiselect-container');
@@ -539,7 +562,7 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
                            setShowPlayerDropdown(false);
                          }
                        }
-                     }, 150);
+                     }, 50);
                    }}
                 />
                                  {(field.name === 'years' ? showYearDropdown : 
@@ -671,20 +694,75 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
       <p>{template.description}</p>
       
       <form onSubmit={handleSubmit}>
-        <div className={`form-grid ${template.id === 'player_comparison' ? 'player-comparison-grid' : ''}`}>
-          {template.fields && template.fields.map((field) => (
-            <div key={field.name} className={`form-field ${field.name}`}>
-              <label htmlFor={field.name}>
-                {field.label}
-                {field.required && <span className="required">*</span>}
-              </label>
-              {renderField(field)}
-              {field.description && (
-                <small className="field-description">{field.description}</small>
+        {template.fields && (() => {
+          const { basicFields, advancedFields } = separateFields(template.fields);
+          
+          return (
+            <>
+              {/* Basic Fields */}
+              <div className={`form-grid ${template.id === 'player_comparison' ? 'player-comparison-grid' : ''}`}>
+                {basicFields.map((field) => (
+                  <div key={field.name} className={`form-field ${field.name}`}>
+                    <label htmlFor={field.name}>
+                      {field.label}
+                      {field.required && <span className="required">*</span>}
+                    </label>
+                    {renderField(field)}
+                    {field.description && (
+                      <small className="field-description">{field.description}</small>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Advanced Filters Section - Only for histogram and scatter plot */}
+              {advancedFields.length > 0 && (template.id === 'season_distribution' || template.id === 'season_correlation') && (
+                <div className="advanced-filters-section">
+                  <details className="advanced-filters-details">
+                    <summary className="advanced-filters-summary">
+                      <span className="advanced-filters-label">Advanced Filters</span>
+                      <span className="advanced-filters-count">({advancedFields.length})</span>
+                    </summary>
+                    <div className="advanced-filters-content">
+                      <div className="form-grid">
+                        {advancedFields.map((field) => (
+                          <div key={field.name} className={`form-field ${field.name}`}>
+                            <label htmlFor={field.name}>
+                              {field.label}
+                              {field.required && <span className="required">*</span>}
+                            </label>
+                            {renderField(field)}
+                            {field.description && (
+                              <small className="field-description">{field.description}</small>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                </div>
               )}
-            </div>
-          ))}
-        </div>
+              
+              {/* Show advanced fields normally for other templates */}
+              {advancedFields.length > 0 && template.id !== 'season_distribution' && template.id !== 'season_correlation' && (
+                <div className="form-grid">
+                  {advancedFields.map((field) => (
+                    <div key={field.name} className={`form-field ${field.name}`}>
+                      <label htmlFor={field.name}>
+                        {field.label}
+                        {field.required && <span className="required">*</span>}
+                      </label>
+                      {renderField(field)}
+                      {field.description && (
+                        <small className="field-description">{field.description}</small>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
         
         <div className="form-actions">
           <button 

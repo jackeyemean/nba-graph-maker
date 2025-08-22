@@ -81,10 +81,8 @@
   font-size: 14px;
 }
 
-/* Add extra spacing above Seasons label */
-.form-field:has(.range-slider-container) label {
-  margin-top: 20px;
-}
+/* Add minimal spacing above Seasons label */
+
 
 .required {
   color: #dc3545;
@@ -230,7 +228,6 @@
 /* Range Slider Styles */
 .range-slider-container {
   width: 100%;
-  margin: 10px 0;
   border: none;
   background: transparent;
   outline: none;
@@ -393,5 +390,66 @@
     width: 100%;
     min-width: auto;
   }
+}
+
+/* Advanced Filters Section */
+.advanced-filters-section {
+  margin: 20px 0;
+  border-top: 1px solid #e1e5e9;
+  padding-top: 20px;
+}
+
+.advanced-filters-details {
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+.advanced-filters-summary {
+  padding: 16px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  background: #e9ecef;
+  border-bottom: 1px solid #e1e5e9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.advanced-filters-summary:hover {
+  background: #dee2e6;
+}
+
+.advanced-filters-summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-filters-summary::before {
+  content: '▶';
+  margin-right: 8px;
+  transition: transform 0.2s ease;
+  color: #6c757d;
+}
+
+.advanced-filters-details[open] .advanced-filters-summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced-filters-label {
+  font-weight: 600;
+}
+
+.advanced-filters-count {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.advanced-filters-content {
+  padding: 20px;
+  background: white;
 }
 
