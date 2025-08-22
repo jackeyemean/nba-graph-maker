@@ -92,8 +92,24 @@ const GraphDisplay = ({ graphData, template }) => {
           text: graphData.title || 'Line Chart',
         },
         tooltip: {
-          mode: 'index',
+          mode: 'nearest',
           intersect: false,
+          callbacks: {
+            title: function(context) {
+              // Show X-axis value as title
+              const xValue = context[0].parsed.x;
+              if (graphData.metadata?.xAxisType === 'age') {
+                return `Age: ${xValue}`;
+              } else if (graphData.metadata?.xAxisType === 'year') {
+                return `Year: ${xValue}`;
+              }
+              return `${graphData.metadata?.xAxisType || 'X'}: ${xValue}`;
+            },
+            label: function(context) {
+              // Show player name and Y value
+              return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
+            }
+          }
         },
       },
              scales: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './GraphForm.css';
-import { TEMPLATES, AVAILABLE_STATS, POSITIONS, AWARDS, generateYears, generateAgeRanges } from '../constants';
+import { AVAILABLE_STATS, POSITIONS, AWARDS, generateYears, generateAgeRanges } from '../constants';
 
 const GraphForm = ({ template, onGenerateGraph, loading }) => {
   const [formData, setFormData] = useState({});
