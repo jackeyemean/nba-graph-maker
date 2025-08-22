@@ -2,7 +2,6 @@ package com.nba.controller;
 
 import com.nba.dto.GraphRequest;
 import com.nba.dto.GraphResponse;
-import com.nba.dto.TemplateInfo;
 import com.nba.service.GraphService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -41,39 +40,7 @@ public class GraphController {
         }
     }
 
-    @GetMapping("/templates")
-    public ResponseEntity<List<TemplateInfo>> getTemplates() {
-        try {
-            List<TemplateInfo> templates = graphService.getAvailableTemplates();
-            return ResponseEntity.ok(templates);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
-    @GetMapping("/template/{templateId}")
-    public ResponseEntity<TemplateInfo> getTemplate(@PathVariable String templateId) {
-        try {
-            TemplateInfo template = graphService.getTemplate(templateId);
-            if (template != null) {
-                return ResponseEntity.ok(template);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/stats/options")
-    public ResponseEntity<List<String>> getAvailableStats() {
-        try {
-            List<String> stats = graphService.getAvailableStats();
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
     @GetMapping("/players")
     public ResponseEntity<List<String>> getPlayers(@RequestParam(required = false) String search) {
@@ -95,24 +62,6 @@ public class GraphController {
         }
     }
 
-    @GetMapping("/years")
-    public ResponseEntity<List<Integer>> getYears() {
-        try {
-            List<Integer> years = graphService.getYears();
-            return ResponseEntity.ok(years);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
-    @GetMapping("/positions")
-    public ResponseEntity<List<String>> getPositions() {
-        try {
-            List<String> positions = graphService.getPositions();
-            return ResponseEntity.ok(positions);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 }
 
