@@ -62,7 +62,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>NBA Graph Maker</h1>
+        <h1>NBA Graph Generator</h1>
       </header>
       
       <main className="App-main">
