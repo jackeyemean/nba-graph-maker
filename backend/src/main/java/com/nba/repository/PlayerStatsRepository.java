@@ -12,6 +12,7 @@ import java.util.List;
 public interface PlayerStatsRepository extends JpaRepository<PlayerStats, Long> {
     
     // Find all stats for a specific player
+    
     @Query("SELECT ps FROM PlayerStats ps WHERE ps.player = :playerName ORDER BY ps.year")
     List<PlayerStats> findByPlayerName(@Param("playerName") String playerName);
     
@@ -35,9 +36,7 @@ public interface PlayerStatsRepository extends JpaRepository<PlayerStats, Long> 
     @Query("SELECT DISTINCT ps.team FROM PlayerStats ps WHERE ps.team IS NOT NULL ORDER BY ps.team")
     List<String> findAllTeams();
     
-    // Find all unique years
-    @Query("SELECT DISTINCT ps.year FROM PlayerStats ps ORDER BY ps.year")
-    List<Integer> findAllYears();
+
     
     // Search players by name (case-insensitive)
     @Query("SELECT DISTINCT ps.player FROM PlayerStats ps WHERE LOWER(ps.player) LIKE LOWER(CONCAT('%', :search, '%')) ORDER BY ps.player")
@@ -63,7 +62,13 @@ public interface PlayerStatsRepository extends JpaRepository<PlayerStats, Long> 
     @Query("SELECT ps FROM PlayerStats ps WHERE ps.player = :playerName ORDER BY ps.year")
     List<PlayerStats> findPlayerAllStats(@Param("playerName") String playerName);
     
-    // Find all unique positions
-    @Query("SELECT DISTINCT ps.position FROM PlayerStats ps WHERE ps.position IS NOT NULL ORDER BY ps.position")
-    List<String> findAllPositions();
+
+    
+    // Find all unique awards
+    @Query("SELECT DISTINCT unnest(string_to_array(ps.awards, ',')) FROM PlayerStats ps WHERE ps.awards IS NOT NULL AND ps.awards != '' ORDER BY 1")
+    List<String> findAllAwards();
+    
+    // Find filtered awards (top 5 for MVP, DPOY, 6MOY, and exclude high place numbers)
+    @Query("SELECT DISTINCT unnest(string_to_array(ps.awards, ',')) FROM PlayerStats ps WHERE ps.awards IS NOT NULL AND ps.awards != '' ORDER BY 1")
+    List<String> findFilteredAwards();
 }

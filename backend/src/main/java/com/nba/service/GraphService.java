@@ -2,7 +2,7 @@ package com.nba.service;
 
 import com.nba.dto.GraphRequest;
 import com.nba.dto.GraphResponse;
-import com.nba.dto.TemplateInfo;
+
 import com.nba.entity.PlayerStats;
 import com.nba.repository.PlayerStatsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,71 +17,7 @@ public class GraphService {
     @Autowired
     private PlayerStatsRepository playerStatsRepository;
 
-    // Available statistics for selection
-    private static final List<String> AVAILABLE_STATS = Arrays.asList(
-        "points", "assists", "rebounds", "steals", "blocks", "turnovers", 
-        "field_goal_percentage", "three_point_percentage", "free_throw_percentage",
-        "minutes_per_game", "games_played", "age"
-    );
 
-    // Template definitions
-    private static final Map<String, TemplateInfo> TEMPLATES = new HashMap<>();
-
-    static {
-        // Player Comparison Line Graph Template
-        TemplateInfo playerComparison = new TemplateInfo(
-            "player_comparison", 
-            "Player Comparison", 
-            "Compare multiple players' statistics over their careers", 
-            "line"
-        );
-        
-        List<TemplateInfo.FieldInfo> playerFields = Arrays.asList(
-            new TemplateInfo.FieldInfo("players", "Players", "multiselect", "LeBron James,Stephen Curry"),
-            new TemplateInfo.FieldInfo("xAxisType", "X-Axis", "select", "age"),
-            new TemplateInfo.FieldInfo("yAxisType", "Y-Axis", "select", "points")
-        );
-        playerComparison.setFields(playerFields);
-        TEMPLATES.put("player_comparison", playerComparison);
-
-        // Season Distribution Histogram Template
-        TemplateInfo seasonDistribution = new TemplateInfo(
-            "season_distribution", 
-            "Season Stat Distribution", 
-            "Show the distribution of a statistic for all players in a season", 
-            "histogram"
-        );
-        
-        List<TemplateInfo.FieldInfo> histogramFields = Arrays.asList(
-            new TemplateInfo.FieldInfo("years", "Seasons", "multiselect", "1996,1997,1998"),
-            new TemplateInfo.FieldInfo("positions", "Positions", "multiselect", "PG,SG,SF,PF,C"),
-            new TemplateInfo.FieldInfo("stat", "X-Axis", "select", "points"),
-            new TemplateInfo.FieldInfo("binCount", "Number of Bins", "number", "20"),
-            new TemplateInfo.FieldInfo("minGamesPlayed", "Minimum Games Played", "number", "10"),
-            new TemplateInfo.FieldInfo("minMinutesPerGame", "Minimum Minutes Per Game", "number", "10")
-        );
-        seasonDistribution.setFields(histogramFields);
-        TEMPLATES.put("season_distribution", seasonDistribution);
-
-        // Season Correlation Scatter Plot Template
-        TemplateInfo seasonCorrelation = new TemplateInfo(
-            "season_correlation", 
-            "Season Correlation", 
-            "Show correlation between two statistics for all players in a season", 
-            "scatter"
-        );
-        
-        List<TemplateInfo.FieldInfo> scatterFields = Arrays.asList(
-            new TemplateInfo.FieldInfo("years", "Seasons", "multiselect", "2013,2014,2015"),
-            new TemplateInfo.FieldInfo("positions", "Positions", "multiselect", "PG,SG,SF,PF,C"),
-            new TemplateInfo.FieldInfo("xAxisStat", "X-Axis", "select", "steals"),
-            new TemplateInfo.FieldInfo("yAxisStat", "Y-Axis", "select", "blocks"),
-            new TemplateInfo.FieldInfo("minGamesPlayed", "Minimum Games Played", "number", "10"),
-            new TemplateInfo.FieldInfo("minMinutesPerGame", "Minimum Minutes Per Game", "number", "10")
-        );
-        seasonCorrelation.setFields(scatterFields);
-        TEMPLATES.put("season_correlation", seasonCorrelation);
-    }
     
     public GraphResponse generateGraph(GraphRequest request) {
         GraphResponse response = new GraphResponse();
@@ -381,7 +317,7 @@ public class GraphService {
                 point.setTeam(stat.getTeam());
                 point.setYear(stat.getYear());
                 point.setLabel(stat.getPlayer());
-                point.setColor(getRandomColor());
+                point.setColor("#D3D3D3"); // Light gray color for all points
                 points.add(point);
             }
         }
@@ -422,9 +358,17 @@ public class GraphService {
         }
         
         // Apply minutes per game filter if specified
+        // Note: Minutes per game wasn't tracked until 1952, so we need to handle null values
         if (request.getMinMinutesPerGame() != null && request.getMinMinutesPerGame() > 0) {
             data = data.stream()
-                .filter(stat -> stat.getMinutesPerGame() != null && stat.getMinutesPerGame() >= request.getMinMinutesPerGame())
+                .filter(stat -> {
+                    // If minutes data is null (pre-1952), include the player
+                    if (stat.getMinutesPerGame() == null) {
+                        return true;
+                    }
+                    // If minutes data exists, apply the filter
+                    return stat.getMinutesPerGame() >= request.getMinMinutesPerGame();
+                })
                 .collect(Collectors.toList());
             System.out.println("getPlayerData: After filtering by minutes, " + data.size() + " records remain");
         }
@@ -466,20 +410,91 @@ public class GraphService {
         
         System.out.println("getSeasonData: Found " + data.size() + " records for year " + year);
         
+        // Debug: Check for early years data quality
+        if (year <= 1951) {
+            System.out.println("=== DEBUG: Early year " + year + " data ===");
+            data.stream().limit(5).forEach(stat -> {
+                System.out.println("Player: " + stat.getPlayer() + 
+                    ", Team: " + stat.getTeam() + 
+                    ", Position: " + stat.getPosition() + 
+                    ", Age: " + stat.getAge() +
+                    ", Points: " + stat.getPoints() +
+                    ", Games: " + stat.getGamesPlayed());
+            });
+            System.out.println("=== END DEBUG ===");
+        }
+        
         // Apply minutes per game filter if specified
+        // Note: Minutes per game wasn't tracked until 1952, so we need to handle null values
         if (request.getMinMinutesPerGame() != null && request.getMinMinutesPerGame() > 0) {
             data = data.stream()
-                .filter(stat -> stat.getMinutesPerGame() != null && stat.getMinutesPerGame() >= request.getMinMinutesPerGame())
+                .filter(stat -> {
+                    // If minutes data is null (pre-1952), include the player
+                    if (stat.getMinutesPerGame() == null) {
+                        return true;
+                    }
+                    // If minutes data exists, apply the filter
+                    return stat.getMinutesPerGame() >= request.getMinMinutesPerGame();
+                })
                 .collect(Collectors.toList());
             System.out.println("getSeasonData: After filtering by minutes, " + data.size() + " records remain");
         }
         
         // Apply position filter if specified
-        if (request.getPositions() != null && !request.getPositions().isEmpty()) {
+        if (request.getPositions() != null && !request.getPositions().isEmpty() && !request.getPositions().contains("All")) {
             data = data.stream()
                 .filter(stat -> stat.getPosition() != null && request.getPositions().contains(stat.getPosition()))
                 .collect(Collectors.toList());
             System.out.println("getSeasonData: After filtering by positions, " + data.size() + " records remain");
+        }
+        
+        // Apply awards filter if specified
+        if (request.getAwards() != null && !request.getAwards().isEmpty() && !request.getAwards().contains("All")) {
+            data = data.stream()
+                .filter(stat -> {
+                    if (stat.getAwards() == null || stat.getAwards().trim().isEmpty()) {
+                        return false;
+                    }
+                    String[] playerAwards = stat.getAwards().split(",");
+                    return Arrays.stream(playerAwards)
+                        .anyMatch(award -> request.getAwards().contains(award.trim()));
+                })
+                .collect(Collectors.toList());
+            System.out.println("getSeasonData: After filtering by awards, " + data.size() + " records remain");
+        }
+        
+        // Apply teams filter if specified
+        if (request.getTeamsFilter() != null && !request.getTeamsFilter().isEmpty() && !request.getTeamsFilter().contains("All")) {
+            data = data.stream()
+                .filter(stat -> {
+                    if (stat.getTeam() == null || stat.getTeam().trim().isEmpty()) {
+                        return false;
+                    }
+                    return request.getTeamsFilter().contains(stat.getTeam().trim());
+                })
+                .collect(Collectors.toList());
+            System.out.println("getSeasonData: After filtering by teams, " + data.size() + " records remain");
+        }
+        
+        // Apply age filter if specified
+        if (request.getAgeRange() != null && !request.getAgeRange().isEmpty() && !request.getAgeRange().contains("All")) {
+            data = data.stream()
+                .filter(stat -> {
+                    if (stat.getAge() == null) {
+                        return false;
+                    }
+                    return request.getAgeRange().stream().anyMatch(ageStr -> {
+                        if (ageStr.equals("All")) return true;
+                        try {
+                            int selectedAge = Integer.parseInt(ageStr.trim());
+                            return stat.getAge() == selectedAge;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    });
+                })
+                .collect(Collectors.toList());
+            System.out.println("getSeasonData: After filtering by age, " + data.size() + " records remain");
         }
         
         // Debug: Show some examples of multi-team records
@@ -628,6 +643,19 @@ public class GraphService {
         return colors[new Random().nextInt(colors.length)];
     }
     
+    private String getConcentrationColor(double value, double min, double max) {
+        // Create a color gradient from red (low concentration) to green (high concentration)
+        double normalizedValue = (value - min) / (max - min);
+        normalizedValue = Math.max(0, Math.min(1, normalizedValue)); // Clamp between 0 and 1
+        
+        // Red to green gradient
+        int red = (int)(255 * (1 - normalizedValue)); // 255 (red) to 0
+        int green = (int)(255 * normalizedValue);     // 0 to 255 (green)
+        int blue = 0;                                 // No blue component
+        
+        return String.format("#%02X%02X%02X", red, green, blue);
+    }
+    
     private String getColorForIndex(int index) {
         String[] colors = {
             "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", 
@@ -636,17 +664,7 @@ public class GraphService {
         return colors[index % colors.length];
     }
 
-    public List<TemplateInfo> getAvailableTemplates() {
-        return new ArrayList<>(TEMPLATES.values());
-    }
 
-    public TemplateInfo getTemplate(String templateId) {
-        return TEMPLATES.get(templateId);
-    }
-
-    public List<String> getAvailableStats() {
-        return new ArrayList<>(AVAILABLE_STATS);
-    }
 
     public List<String> searchPlayers(String search) {
         if (search == null || search.trim().isEmpty()) {
@@ -659,11 +677,129 @@ public class GraphService {
         return playerStatsRepository.findAllTeams();
     }
 
-    public List<Integer> getYears() {
-        return playerStatsRepository.findAllYears();
-    }
 
-    public List<String> getPositions() {
-        return playerStatsRepository.findAllPositions();
+
+    public List<String> getAwards() {
+        List<String> allAwards = playerStatsRepository.findFilteredAwards();
+        
+        // Filter awards to only include top 5 for MVP, DPOY, 6MOY, and exclude high place numbers
+        List<String> filteredAwards = allAwards.stream()
+            .filter(award -> {
+                if (award == null || award.trim().isEmpty()) {
+                    return false;
+                }
+                
+                String trimmedAward = award.trim();
+                
+                // Handle MVP awards (MVP-1, MVP-2, etc.)
+                if (trimmedAward.startsWith("MVP-")) {
+                    try {
+                        int place = Integer.parseInt(trimmedAward.substring(4));
+                        return place <= 5;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // Handle DPOY awards (DPOY-1, DPOY-2, etc.)
+                if (trimmedAward.startsWith("DPOY-")) {
+                    try {
+                        int place = Integer.parseInt(trimmedAward.substring(5));
+                        return place <= 5;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // Handle 6MOY awards (6MOY-1, 6MOY-2, etc.)
+                if (trimmedAward.startsWith("6MOY-")) {
+                    try {
+                        int place = Integer.parseInt(trimmedAward.substring(5));
+                        return place <= 5;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // For other awards with place numbers (e.g., "All-NBA-1", "All-Defense-2")
+                if (trimmedAward.contains("-")) {
+                    String[] parts = trimmedAward.split("-");
+                    if (parts.length > 1) {
+                        try {
+                            int place = Integer.parseInt(parts[parts.length - 1]);
+                            return place <= 5;
+                        } catch (NumberFormatException e) {
+                            // If the last part isn't a number, include the award
+                            return true;
+                        }
+                    }
+                }
+                
+                // Include all other awards (All-Star, etc.)
+                return true;
+            })
+            .collect(Collectors.toList());
+        
+        // Custom sorting: MVP, DPOY, NBA 1-3, DEF 1-2, ROY, 6MOY, MIP, then others
+        return filteredAwards.stream()
+            .sorted((a, b) -> {
+                int orderA = getAwardOrder(a);
+                int orderB = getAwardOrder(b);
+                
+                if (orderA != orderB) {
+                    return Integer.compare(orderA, orderB);
+                }
+                
+                // If same category, sort alphabetically
+                return a.compareTo(b);
+            })
+            .collect(Collectors.toList());
+    }
+    
+    private int getAwardOrder(String award) {
+        String trimmedAward = award.trim();
+        
+        // MVP awards (MVP-1, MVP-2, etc.)
+        if (trimmedAward.startsWith("MVP-")) {
+            return 1;
+        }
+
+        // All stars
+        if (trimmedAward.startsWith("AS")) {
+            return 2;
+        }
+
+        // DPOY awards (DPOY-1, DPOY-2, etc.)
+        if (trimmedAward.startsWith("DPOY-")) {
+            return 3;
+        }
+        
+        // All-NBA awards (NBA1, NBA2, NBA3)
+        if (trimmedAward.startsWith("NBA")) {
+            return 4;
+        }
+        
+        // All-Defense awards (DEF1, DEF2)
+        if (trimmedAward.startsWith("DEF")) {
+            return 5;
+        }
+        
+        // ROY (Rookie of the Year)
+        if (trimmedAward.equals("ROY")) {
+            return 6;
+        }
+        
+        // 6MOY awards (6MOY-1, 6MOY-2, etc.)
+        if (trimmedAward.startsWith("6MOY-")) {
+            return 7;
+        }
+        
+        // MIP (Most Improved Player)
+        if (trimmedAward.equals("MIP")) {
+            return 8;
+        }
+        
+        // All other awards come last
+        return 999;
     }
 }
