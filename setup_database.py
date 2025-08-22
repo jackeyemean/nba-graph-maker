@@ -121,6 +121,15 @@ def create_unified_table():
         cursor.execute("CREATE INDEX idx_nba_stats_team ON nba_stats(team)")
         cursor.execute("CREATE INDEX idx_nba_stats_position ON nba_stats(position)")
         cursor.execute("CREATE INDEX idx_nba_stats_year_player ON nba_stats(year, player)")
+        cursor.execute("CREATE INDEX idx_nba_stats_games_minutes ON nba_stats(games_played, minutes_per_game)")
+        cursor.execute("CREATE INDEX idx_nba_stats_age ON nba_stats(age)")
+        cursor.execute("CREATE INDEX idx_nba_stats_awards ON nba_stats USING gin(string_to_array(awards, ','))")
+        
+        # Composite indexes for common query patterns
+        cursor.execute("CREATE INDEX idx_nba_stats_year_games_minutes ON nba_stats(year, games_played, minutes_per_game)")
+        cursor.execute("CREATE INDEX idx_nba_stats_year_position ON nba_stats(year, position)")
+        cursor.execute("CREATE INDEX idx_nba_stats_year_team ON nba_stats(year, team)")
+        cursor.execute("CREATE INDEX idx_nba_stats_year_age ON nba_stats(year, age)")
         
         conn.commit()
         cursor.close()

@@ -363,29 +363,66 @@ const GraphDisplay = ({ graphData, template }) => {
 
   return (
     <div className="graph-display">
-      <div className="chart-container">
-        {renderChart()}
-      </div>
-      
-      {graphData.metadata && (
-        <div className="chart-metadata">
-          <h4>Chart Information</h4>
-          <div className="metadata-grid">
-            {Object.entries(graphData.metadata).map(([key, value]) => (
-              <div key={key} className="metadata-item">
-                <strong>{key}:</strong> {value}
-              </div>
-            ))}
+      {/* Performance Metrics Above Chart */}
+      {graphData.metadata && graphData.metadata.performance && (
+        <div className="performance-summary">
+          <div className="performance-item">
+            <strong>Execution Time:</strong> {graphData.metadata.performance.executionTimeSeconds}s
+          </div>
+          <div className="performance-item">
+            <strong>Records Processed:</strong> {graphData.metadata.performance.totalRecordsProcessed.toLocaleString()}
+          </div>
+          <div className="performance-item">
+            <strong>SQL Queries:</strong> {graphData.metadata.performance.sqlQueriesCount}
           </div>
         </div>
       )}
       
-      {graphData.sqlQuery && (
-        <details className="sql-query">
-          <summary>View SQL Query</summary>
-          <pre>{graphData.sqlQuery}</pre>
-        </details>
+      <div className="chart-container">
+        {renderChart()}
+      </div>
+      
+      {/* Chart Information - binPlayers for histograms, playerList for scatter plots */}
+      {graphData.metadata && (graphData.metadata.binPlayers || graphData.metadata.playerList) && (
+        <div className="chart-metadata">
+          <h4>Chart Information</h4>
+          
+          {/* Histogram bin players */}
+          {graphData.metadata.binPlayers && (
+            <div className="bin-players">
+              {graphData.metadata.binPlayers.map((bin, index) => (
+                <details key={index} className="bin-details">
+                  <summary>Bin {index + 1} ({bin.length} players)</summary>
+                  <div className="bin-content">
+                    {bin.map((player, playerIndex) => (
+                      <div key={playerIndex} className="player-item">
+                        {player}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+          
+          {/* Scatter plot player list */}
+          {graphData.metadata.playerList && (
+            <div className="player-list">
+              <details className="player-list-details">
+                <summary>All Players ({graphData.metadata.playerList.length} players)</summary>
+                <div className="player-list-content">
+                  {graphData.metadata.playerList.map((player, index) => (
+                    <div key={index} className="player-item">
+                      {player}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )}
+        </div>
       )}
+
     </div>
   );
 };

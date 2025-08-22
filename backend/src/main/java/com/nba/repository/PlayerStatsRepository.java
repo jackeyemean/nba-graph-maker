@@ -71,4 +71,22 @@ public interface PlayerStatsRepository extends JpaRepository<PlayerStats, Long> 
     // Find filtered awards (top 5 for MVP, DPOY, 6MOY, and exclude high place numbers)
     @Query("SELECT DISTINCT unnest(string_to_array(ps.awards, ',')) FROM PlayerStats ps WHERE ps.awards IS NOT NULL AND ps.awards != '' ORDER BY 1")
     List<String> findFilteredAwards();
+    
+    // Optimized query for filtered data with all conditions in one query
+    @Query("SELECT ps FROM PlayerStats ps " +
+           "WHERE ps.year = :year " +
+           "AND (:minGames IS NULL OR ps.gamesPlayed >= :minGames) " +
+           "AND (:minMinutes IS NULL OR ps.minutesPerGame >= :minMinutes) " +
+           "AND (:positions IS NULL OR ps.position IN :positions) " +
+           "AND (:teams IS NULL OR ps.team IN :teams) " +
+           "AND (:ages IS NULL OR ps.age IN :ages) " +
+           "ORDER BY ps.points DESC")
+    List<PlayerStats> findByYearWithFilters(@Param("year") Integer year,
+                                           @Param("minGames") Integer minGames,
+                                           @Param("minMinutes") Double minMinutes,
+                                           @Param("positions") List<String> positions,
+                                           @Param("teams") List<String> teams,
+                                           @Param("ages") List<Integer> ages);
+    
+
 }

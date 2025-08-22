@@ -6,6 +6,7 @@ import com.nba.service.GraphService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -20,23 +21,11 @@ public class GraphController {
     @PostMapping("/generate")
     public ResponseEntity<GraphResponse> generateGraph(@RequestBody GraphRequest request) {
         try {
-            System.out.println("Received request:");
-            System.out.println("  graphType: " + request.getGraphType());
-            System.out.println("  template: " + request.getTemplate());
-            System.out.println("  players: " + request.getPlayers());
-            System.out.println("  xAxisType: " + request.getXAxisType());
-            System.out.println("  yAxisType: " + request.getYAxisType());
-            System.out.println("  includeMultiTeamPlayers: " + request.getIncludeMultiTeamPlayers());
-            
             GraphResponse response = graphService.generateGraph(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.out.println("Error in controller: " + e.getMessage());
-            e.printStackTrace();
-            GraphResponse errorResponse = new GraphResponse();
-            errorResponse.setGraphType(request.getGraphType());
-            errorResponse.setTitle("Error");
-            return ResponseEntity.badRequest().body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new GraphResponse());
         }
     }
 

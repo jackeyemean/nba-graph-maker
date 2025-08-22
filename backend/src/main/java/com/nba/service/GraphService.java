@@ -10,32 +10,31 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.time.Instant;
 
 @Service
 public class GraphService {
     
     @Autowired
     private PlayerStatsRepository playerStatsRepository;
+    
+    // Performance tracking
+    private long startTime;
+    private long endTime;
+    private int totalRecordsProcessed;
+    private int sqlQueriesCount = 0;
 
 
     
     public GraphResponse generateGraph(GraphRequest request) {
+        // Reset performance tracking
+        startTime = System.currentTimeMillis();
+        totalRecordsProcessed = 0;
+        sqlQueriesCount = 0;
+        
         GraphResponse response = new GraphResponse();
         response.setGraphType(request.getGraphType());
-        
-        // Debug: Print all request fields
-        System.out.println("=== REQUEST DEBUG ===");
-        System.out.println("graphType: " + request.getGraphType());
-        System.out.println("template: " + request.getTemplate());
-        System.out.println("xAxisType: " + request.getXAxisType());
-        System.out.println("yAxisType: " + request.getYAxisType());
-        System.out.println("xAxisStat: " + request.getXAxisStat());
-        System.out.println("yAxisStat: " + request.getYAxisStat());
-        System.out.println("stat: " + request.getStat());
-        System.out.println("year: " + request.getYear());
-        System.out.println("years: " + request.getYears());
-        System.out.println("players: " + request.getPlayers());
-        System.out.println("====================");
         
         // Set default values for missing fields
         switch (request.getGraphType()) {
@@ -66,48 +65,57 @@ public class GraphService {
                 String xAxisStat = request.getXAxisStat();
                 String yAxisStat = request.getYAxisStat();
                 
-                System.out.println("Scatter plot - Original xAxisStat: " + xAxisStat);
-                System.out.println("Scatter plot - Original yAxisStat: " + yAxisStat);
-                
                 if (xAxisStat == null) {
                     xAxisStat = "steals";
                     request.setXAxisStat(xAxisStat);
-                    System.out.println("Scatter plot - Using default xAxisStat: " + xAxisStat);
                 }
                 if (yAxisStat == null) {
                     yAxisStat = "blocks";
                     request.setYAxisStat(yAxisStat);
-                    System.out.println("Scatter plot - Using default yAxisStat: " + yAxisStat);
                 }
-                
-                System.out.println("Scatter plot - Final xAxisStat: " + xAxisStat);
-                System.out.println("Scatter plot - Final yAxisStat: " + yAxisStat);
                 break;
         }
 
+        GraphResponse result;
         switch (request.getGraphType()) {
             case "line":
-                return generateLineGraph(request, response);
+                result = generateLineGraph(request, response);
+                break;
             case "histogram":
-                return generateHistogram(request, response);
+                result = generateHistogram(request, response);
+                break;
             case "scatter":
-                return generateScatterPlot(request, response);
+                result = generateScatterPlot(request, response);
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported graph type: " + request.getGraphType());
         }
+        
+        // Add performance metrics
+        endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> metadata = result.getMetadata() != null ? result.getMetadata() : new HashMap<>();
+        
+        metadata.put("performance", Map.of(
+            "executionTimeMs", executionTime,
+            "executionTimeSeconds", String.format("%.2f", executionTime / 1000.0),
+            "totalRecordsProcessed", totalRecordsProcessed,
+            "sqlQueriesCount", sqlQueriesCount
+        ));
+        result.setMetadata(metadata);
+        
+        return result;
     }
 
     private GraphResponse generateLineGraph(GraphRequest request, GraphResponse response) {
         List<GraphResponse.LineDataset> datasets = new ArrayList<>();
         
-        System.out.println("Generating line graph for players: " + request.getPlayers());
-        System.out.println("X-Axis: " + request.getXAxisType() + ", Y-Axis: " + request.getYAxisType());
-        
         if (request.getPlayers() != null) {
             for (int i = 0; i < request.getPlayers().size(); i++) {
                 String player = request.getPlayers().get(i);
                 List<PlayerStats> playerData = getPlayerData(player, request);
-                System.out.println("Processing " + playerData.size() + " records for " + player);
+    
                 
                 List<Double> xValues = new ArrayList<>();
                 List<Double> yValues = new ArrayList<>();
@@ -116,8 +124,7 @@ public class GraphService {
                     Double xValue = getValueForAxis(stat, request.getXAxisType());
                     Double yValue = getValueForAxis(stat, request.getYAxisType());
                     
-                    System.out.println("  Record: Year=" + stat.getYear() + ", Age=" + stat.getAge() + ", Points=" + stat.getPoints() + 
-                                     " -> X=" + xValue + ", Y=" + yValue);
+
                     
                     if (xValue != null && yValue != null) {
                         xValues.add(xValue);
@@ -144,8 +151,7 @@ public class GraphService {
                     sortedYValues.add(pair.getValue());
                 }
                 
-                System.out.println("Final X values: " + sortedXValues);
-                System.out.println("Final Y values: " + sortedYValues);
+
                 
                 if (!sortedXValues.isEmpty()) {
                     GraphResponse.LineDataset dataset = new GraphResponse.LineDataset();
@@ -155,14 +161,10 @@ public class GraphService {
                     dataset.setBorderColor(getColorForIndex(i));
                     dataset.setFill(false);
                     datasets.add(dataset);
-                    System.out.println("Added dataset for " + player + " with " + sortedXValues.size() + " points");
-                } else {
-                    System.out.println("No valid data points for " + player);
                 }
             }
         }
         
-        System.out.println("Total datasets created: " + datasets.size());
         response.setDatasets(datasets);
         
         // Add metadata for frontend axis labels
@@ -187,24 +189,22 @@ public class GraphService {
             data = getSeasonData(request.getYear(), request.getStat(), request);
         }
         
-        System.out.println("Histogram: Found " + data.size() + " records for stat " + request.getStat());
+        // Optimized histogram binning - single pass through data
+        int binCount = request.getBinCount() != null ? request.getBinCount() : 20;
         
-        // Debug: Show some examples of the data being processed
-        System.out.println("Histogram: Sample data being processed:");
-        data.stream()
-            .limit(10)
-            .forEach(stat -> {
-                Double value = getValueForStat(stat, request.getStat());
-                System.out.println("  " + stat.getPlayer() + " (" + stat.getYear() + ") - " + stat.getTeam() + " = " + value);
-            });
+        // Pre-calculate all values and find min/max in single pass
+        List<Double> values = new ArrayList<>();
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
         
-        // Calculate histogram bins
-        List<Double> values = data.stream()
-            .map(stat -> getValueForStat(stat, request.getStat()))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-        
-        System.out.println("Histogram: Valid values: " + values.size());
+        for (PlayerStats stat : data) {
+            Double value = getValueForStat(stat, request.getStat());
+            if (value != null) {
+                values.add(value);
+                if (value < min) min = value;
+                if (value > max) max = value;
+            }
+        }
         
         if (values.isEmpty()) {
             response.setBinEdges(new ArrayList<>());
@@ -212,61 +212,34 @@ public class GraphService {
             return response;
         }
         
-        int binCount = request.getBinCount() != null ? request.getBinCount() : 20;
-        double min = values.stream().mapToDouble(Double::doubleValue).min().orElse(0);
-        double max = values.stream().mapToDouble(Double::doubleValue).max().orElse(1);
         double binWidth = (max - min) / binCount;
         
-        System.out.println("Histogram binning: min=" + min + ", max=" + max + ", binWidth=" + binWidth + ", binCount=" + binCount);
-        
+        // Initialize bins
         List<Double> binEdges = new ArrayList<>();
         List<Integer> binCounts = new ArrayList<>();
-        List<List<String>> binPlayers = new ArrayList<>(); // Store players in each bin
+        List<List<String>> binPlayers = new ArrayList<>();
         
         for (int i = 0; i <= binCount; i++) {
             binEdges.add(min + i * binWidth);
         }
         
+        // Initialize bin counts and player lists
         for (int i = 0; i < binCount; i++) {
-            final double lowerBound = binEdges.get(i);
-            final double upperBound = binEdges.get(i + 1);
-            
-            List<PlayerStats> binData;
-            if (i == binCount - 1) {
-                // For the last bin, include the upper bound (inclusive)
-                binData = data.stream()
-                    .filter(stat -> {
-                        Double value = getValueForStat(stat, request.getStat());
-                        return value != null && value >= lowerBound && value <= upperBound;
-                    })
-                    .collect(Collectors.toList());
-            } else {
-                // For all other bins, exclude the upper bound
-                binData = data.stream()
-                    .filter(stat -> {
-                        Double value = getValueForStat(stat, request.getStat());
-                        return value != null && value >= lowerBound && value < upperBound;
-                    })
-                    .collect(Collectors.toList());
-            }
-            
-            int count = binData.size();
-            binCounts.add(count);
-            
-            // Store all player names with their values
-            List<String> playerNames = binData.stream()
-                .map(stat -> {
-                    Double value = getValueForStat(stat, request.getStat());
-                    return stat.getPlayer() + " (" + stat.getYear() + ") - " + String.format("%.1f", value);
-                })
-                .collect(Collectors.toList());
-            binPlayers.add(playerNames);
-            
-            System.out.println("Bin " + i + ": [" + lowerBound + ", " + upperBound + (i == binCount - 1 ? "]" : ")") + " -> " + count + " values");
+            binCounts.add(0);
+            binPlayers.add(new ArrayList<>());
         }
         
-        System.out.println("Total values in bins: " + binCounts.stream().mapToInt(Integer::intValue).sum());
-        System.out.println("Original values count: " + values.size());
+        // Single pass binning - much faster than multiple stream operations
+        for (PlayerStats stat : data) {
+            Double value = getValueForStat(stat, request.getStat());
+            if (value != null) {
+                int binIndex = (int) Math.min((value - min) / binWidth, binCount - 1);
+                if (binIndex >= 0 && binIndex < binCount) {
+                    binCounts.set(binIndex, binCounts.get(binIndex) + 1);
+                    binPlayers.get(binIndex).add(stat.getPlayer() + " (" + stat.getYear() + ") - " + String.format("%.1f", value));
+                }
+            }
+        }
         
         response.setBinEdges(binEdges);
         response.setBinCounts(binCounts);
@@ -293,21 +266,20 @@ public class GraphService {
             data = getSeasonData(request.getYear(), null, request);
         }
         
-        System.out.println("Scatter plot: Found " + data.size() + " records");
-        
         // Use the values from the request (fallbacks already applied in generateGraph)
         String xAxisStat = request.getXAxisStat();
         String yAxisStat = request.getYAxisStat();
         
-        System.out.println("Scatter plot using xAxisStat: " + xAxisStat + ", yAxisStat: " + yAxisStat);
+
         
         List<GraphResponse.ScatterPoint> points = new ArrayList<>();
+        Set<String> uniquePlayers = new HashSet<>(); // Track unique players for the list
         
         for (PlayerStats stat : data) {
             Double xValue = getValueForStat(stat, xAxisStat);
             Double yValue = getValueForStat(stat, yAxisStat);
             
-            System.out.println("Player: " + stat.getPlayer() + ", X: " + xValue + ", Y: " + yValue);
+
             
             if (xValue != null && yValue != null) {
                 GraphResponse.ScatterPoint point = new GraphResponse.ScatterPoint();
@@ -319,34 +291,40 @@ public class GraphService {
                 point.setLabel(stat.getPlayer());
                 point.setColor("#D3D3D3"); // Light gray color for all points
                 points.add(point);
+                
+                // Add to unique players set
+                uniquePlayers.add(stat.getPlayer());
             }
         }
         
-        System.out.println("Scatter plot: Created " + points.size() + " points");
+
         response.setPoints(points);
         
-        // Add metadata for frontend axis labels
+        // Add metadata for frontend axis labels and player list
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("xAxisStat", xAxisStat);
         metadata.put("yAxisStat", yAxisStat);
+        
+        // Create sorted player list for display
+        List<String> playerList = uniquePlayers.stream()
+            .sorted()
+            .collect(Collectors.toList());
+        metadata.put("playerList", playerList);
+        
         response.setMetadata(metadata);
         
         return response;
     }
 
     private List<PlayerStats> getPlayerData(String playerName, GraphRequest request) {
-        System.out.println("Searching for player: '" + playerName + "'");
+        sqlQueriesCount++;
         List<PlayerStats> data = playerStatsRepository.findPlayerAllStats(playerName);
-        System.out.println("Found " + data.size() + " records for player: " + playerName);
+        totalRecordsProcessed += data.size();
         
         if (data.isEmpty()) {
             // Try a case-insensitive search
             List<String> allPlayers = playerStatsRepository.findAllPlayers();
-            System.out.println("Available players containing '" + playerName + "':");
-            allPlayers.stream()
-                .filter(p -> p.toLowerCase().contains(playerName.toLowerCase()))
-                .limit(5)
-                .forEach(p -> System.out.println("  - " + p));
+
         }
         
         // Apply games played filter if specified
@@ -354,7 +332,7 @@ public class GraphService {
             data = data.stream()
                 .filter(stat -> stat.getGamesPlayed() != null && stat.getGamesPlayed() >= request.getMinGamesPlayed())
                 .collect(Collectors.toList());
-            System.out.println("getPlayerData: After filtering by games, " + data.size() + " records remain");
+
         }
         
         // Apply minutes per game filter if specified
@@ -370,7 +348,7 @@ public class GraphService {
                     return stat.getMinutesPerGame() >= request.getMinMinutesPerGame();
                 })
                 .collect(Collectors.toList());
-            System.out.println("getPlayerData: After filtering by minutes, " + data.size() + " records remain");
+
         }
         
         // For line graphs, always use multi-team overall stats (filter out individual team records)
@@ -402,139 +380,84 @@ public class GraphService {
     private List<PlayerStats> getSeasonData(Integer year, String statName, GraphRequest request) {
         List<PlayerStats> data;
         
-        if (request.getMinGamesPlayed() != null && request.getMinGamesPlayed() > 0) {
-            data = playerStatsRepository.findByYearAndMinGames(year, request.getMinGamesPlayed());
-        } else {
-            data = playerStatsRepository.findByYear(year);
-        }
+        // Use optimized query with all filters in one database call
+        List<String> positions = (request.getPositions() != null && !request.getPositions().isEmpty() && !request.getPositions().contains("All")) 
+            ? request.getPositions() : null;
+        List<String> teams = (request.getTeamsFilter() != null && !request.getTeamsFilter().isEmpty() && !request.getTeamsFilter().contains("All")) 
+            ? request.getTeamsFilter() : null;
+        List<Integer> ages = null;
         
-        System.out.println("getSeasonData: Found " + data.size() + " records for year " + year);
-        
-        // Debug: Check for early years data quality
-        if (year <= 1951) {
-            System.out.println("=== DEBUG: Early year " + year + " data ===");
-            data.stream().limit(5).forEach(stat -> {
-                System.out.println("Player: " + stat.getPlayer() + 
-                    ", Team: " + stat.getTeam() + 
-                    ", Position: " + stat.getPosition() + 
-                    ", Age: " + stat.getAge() +
-                    ", Points: " + stat.getPoints() +
-                    ", Games: " + stat.getGamesPlayed());
-            });
-            System.out.println("=== END DEBUG ===");
-        }
-        
-        // Apply minutes per game filter if specified
-        // Note: Minutes per game wasn't tracked until 1952, so we need to handle null values
-        if (request.getMinMinutesPerGame() != null && request.getMinMinutesPerGame() > 0) {
-            data = data.stream()
-                .filter(stat -> {
-                    // If minutes data is null (pre-1952), include the player
-                    if (stat.getMinutesPerGame() == null) {
-                        return true;
+        // Convert age strings to integers - optimized with parallelStream
+        if (request.getAgeRange() != null && !request.getAgeRange().isEmpty() && !request.getAgeRange().contains("All")) {
+            ages = request.getAgeRange().parallelStream()
+                .filter(ageStr -> !ageStr.equals("All"))
+                .map(ageStr -> {
+                    try {
+                        return Integer.parseInt(ageStr.trim());
+                    } catch (NumberFormatException e) {
+                        return null;
                     }
-                    // If minutes data exists, apply the filter
-                    return stat.getMinutesPerGame() >= request.getMinMinutesPerGame();
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-            System.out.println("getSeasonData: After filtering by minutes, " + data.size() + " records remain");
         }
         
-        // Apply position filter if specified
-        if (request.getPositions() != null && !request.getPositions().isEmpty() && !request.getPositions().contains("All")) {
-            data = data.stream()
-                .filter(stat -> stat.getPosition() != null && request.getPositions().contains(stat.getPosition()))
-                .collect(Collectors.toList());
-            System.out.println("getSeasonData: After filtering by positions, " + data.size() + " records remain");
-        }
+        sqlQueriesCount++;
+        data = playerStatsRepository.findByYearWithFilters(
+            year,
+            request.getMinGamesPlayed(),
+            request.getMinMinutesPerGame() != null ? request.getMinMinutesPerGame().doubleValue() : null,
+            positions,
+            teams,
+            ages
+        );
         
-        // Apply awards filter if specified
+        totalRecordsProcessed += data.size();
+        
+        // Apply awards filter if specified - optimized with HashSet for O(1) lookup
         if (request.getAwards() != null && !request.getAwards().isEmpty() && !request.getAwards().contains("All")) {
-            data = data.stream()
+            Set<String> requestedAwards = new HashSet<>(request.getAwards());
+            data = data.parallelStream()
                 .filter(stat -> {
                     if (stat.getAwards() == null || stat.getAwards().trim().isEmpty()) {
                         return false;
                     }
+                    // Use HashSet intersection for faster award matching
                     String[] playerAwards = stat.getAwards().split(",");
-                    return Arrays.stream(playerAwards)
-                        .anyMatch(award -> request.getAwards().contains(award.trim()));
-                })
-                .collect(Collectors.toList());
-            System.out.println("getSeasonData: After filtering by awards, " + data.size() + " records remain");
-        }
-        
-        // Apply teams filter if specified
-        if (request.getTeamsFilter() != null && !request.getTeamsFilter().isEmpty() && !request.getTeamsFilter().contains("All")) {
-            data = data.stream()
-                .filter(stat -> {
-                    if (stat.getTeam() == null || stat.getTeam().trim().isEmpty()) {
-                        return false;
-                    }
-                    return request.getTeamsFilter().contains(stat.getTeam().trim());
-                })
-                .collect(Collectors.toList());
-            System.out.println("getSeasonData: After filtering by teams, " + data.size() + " records remain");
-        }
-        
-        // Apply age filter if specified
-        if (request.getAgeRange() != null && !request.getAgeRange().isEmpty() && !request.getAgeRange().contains("All")) {
-            data = data.stream()
-                .filter(stat -> {
-                    if (stat.getAge() == null) {
-                        return false;
-                    }
-                    return request.getAgeRange().stream().anyMatch(ageStr -> {
-                        if (ageStr.equals("All")) return true;
-                        try {
-                            int selectedAge = Integer.parseInt(ageStr.trim());
-                            return stat.getAge() == selectedAge;
-                        } catch (NumberFormatException e) {
-                            return false;
+                    for (String award : playerAwards) {
+                        if (requestedAwards.contains(award.trim())) {
+                            return true;
                         }
-                    });
+                    }
+                    return false;
                 })
                 .collect(Collectors.toList());
-            System.out.println("getSeasonData: After filtering by age, " + data.size() + " records remain");
         }
         
-        // Debug: Show some examples of multi-team records
-        System.out.println("getSeasonData: Sample records before filtering:");
-        data.stream()
-            .filter(stat -> stat.getTeam() != null && stat.getTeam().contains("TM"))
-            .limit(5)
-            .forEach(stat -> System.out.println("  Multi-team: " + stat.getPlayer() + " (" + stat.getYear() + ") - " + stat.getTeam()));
-        
-        data.stream()
-            .filter(stat -> stat.getTeam() != null && !stat.getTeam().contains("TM"))
-            .limit(5)
-            .forEach(stat -> System.out.println("  Individual team: " + stat.getPlayer() + " (" + stat.getYear() + ") - " + stat.getTeam()));
-        
-        // For histograms and scatter plots, use multi-team overall stats (filter out individual team records)
-        // This ensures we don't double-count players who played for multiple teams
-        
-        // First, identify players who have multi-team overall records
-        Set<String> playersWithMultiTeamRecords = data.stream()
-            .filter(stat -> stat.getTeam() != null && stat.getTeam().contains("TM"))
-            .map(stat -> stat.getPlayer() + "_" + stat.getYear())
-            .collect(Collectors.toSet());
-        
-        // Then filter the data
-        data = data.stream()
-            .filter(stat -> {
-                // Keep records where team is null (single team) or contains "TM" (multi-team overall)
-                if (stat.getTeam() == null) {
-                    return true; // Single team player
+        // Optimized multi-team filtering - single pass with early termination
+        if (data.size() > 1000) { // Only do complex filtering for large datasets
+            Map<String, Boolean> playerYearMultiTeam = new HashMap<>();
+            
+            // Single pass to identify multi-team players
+            for (PlayerStats stat : data) {
+                if (stat.getTeam() != null && stat.getTeam().contains("TM")) {
+                    String key = stat.getPlayer() + "_" + stat.getYear();
+                    playerYearMultiTeam.put(key, true);
                 }
-                if (stat.getTeam().contains("TM")) {
-                    return true; // Multi-team overall stats
-                }
-                // For individual team records, check if this player has a multi-team overall record
-                String playerYearKey = stat.getPlayer() + "_" + stat.getYear();
-                return !playersWithMultiTeamRecords.contains(playerYearKey); // Keep if no multi-team record exists
-            })
-            .collect(Collectors.toList());
-        
-        System.out.println("getSeasonData: After filtering multi-team, " + data.size() + " records remain");
+            }
+            
+            // Filter in single pass
+            data = data.parallelStream()
+                .filter(stat -> {
+                    if (stat.getTeam() == null) return true; // Single team player
+                    if (stat.getTeam().contains("TM")) return true; // Multi-team overall
+                    
+                    // Check if this player has a multi-team record
+                    String key = stat.getPlayer() + "_" + stat.getYear();
+                    return !playerYearMultiTeam.containsKey(key);
+                })
+                .collect(Collectors.toList());
+        }
         
         return data;
     }
@@ -546,7 +469,7 @@ public class GraphService {
     private Double getValueForStat(PlayerStats stat, String statName) {
         if (statName == null) return null;
         
-        System.out.println("Getting value for stat: '" + statName + "' for player: " + stat.getPlayer());
+
         
         switch (statName.toLowerCase()) {
             case "age":
@@ -585,7 +508,6 @@ public class GraphService {
             case "personal_fouls":
                 return stat.getPersonalFouls();
             default:
-                System.out.println("Unknown stat: " + statName);
                 return null;
         }
     }
@@ -663,6 +585,7 @@ public class GraphService {
         };
         return colors[index % colors.length];
     }
+
 
 
 
