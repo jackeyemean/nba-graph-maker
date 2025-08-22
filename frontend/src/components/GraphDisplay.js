@@ -238,12 +238,13 @@ const GraphDisplay = ({ graphData, template }) => {
             x: point.x,
             y: point.y,
             player: point.player,
-            team: point.team,
+            position: point.position,
             year: point.year,
             label: point.label,
+            color: point.color,
           })),
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
+          backgroundColor: graphData.points.map(point => point.color || 'rgba(54, 162, 235, 0.6)'),
+          borderColor: graphData.points.map(point => point.color || 'rgba(54, 162, 235, 1)'),
           pointRadius: 6,
           pointHoverRadius: 8,
         },
@@ -266,7 +267,7 @@ const GraphDisplay = ({ graphData, template }) => {
               label: (context) => {
                 const point = context.raw;
                 const labels = [`Player: ${point.player}`];
-                if (point.team) labels.push(`Team: ${point.team}`);
+                if (point.position) labels.push(`Position: ${point.position}`);
                 if (point.year) labels.push(`Season: ${point.year}`);
                 return labels;
               },

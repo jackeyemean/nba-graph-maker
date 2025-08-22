@@ -90,3 +90,15 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/

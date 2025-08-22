@@ -101,6 +101,7 @@ public class GraphResponse {
         private Double y;
         private String player;
         private String team;
+        private String position;
         private Integer year;
         private String label;
         private String color;
@@ -153,6 +154,14 @@ public class GraphResponse {
         
         public void setTeam(String team) {
             this.team = team;
+        }
+        
+        public String getPosition() {
+            return position;
+        }
+        
+        public void setPosition(String position) {
+            this.position = position;
         }
         
         public Integer getYear() {

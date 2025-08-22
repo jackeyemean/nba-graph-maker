@@ -38,6 +38,11 @@ public class GraphRequest {
     private Integer minMinutesPerGame;
     private List<String> positions;
     private List<String> teams;
+    private List<String> awards;
+    private List<String> ageRange;
+    private List<String> teamsFilter; // New teams filter field
+    private Integer minAge;
+    private Integer maxAge;
     
     // General customization
     private String title;
@@ -206,6 +211,46 @@ public class GraphRequest {
     
     public void setTeams(List<String> teams) {
         this.teams = teams;
+    }
+    
+    public List<String> getAwards() {
+        return awards;
+    }
+    
+    public void setAwards(List<String> awards) {
+        this.awards = awards;
+    }
+    
+        public List<String> getAgeRange() {
+        return ageRange;
+    }
+
+    public void setAgeRange(List<String> ageRange) {
+        this.ageRange = ageRange;
+    }
+
+    public List<String> getTeamsFilter() {
+        return teamsFilter;
+    }
+
+    public void setTeamsFilter(List<String> teamsFilter) {
+        this.teamsFilter = teamsFilter;
+    }
+    
+    public Integer getMinAge() {
+        return minAge;
+    }
+    
+    public void setMinAge(Integer minAge) {
+        this.minAge = minAge;
+    }
+    
+    public Integer getMaxAge() {
+        return maxAge;
+    }
+    
+    public void setMaxAge(Integer maxAge) {
+        this.maxAge = maxAge;
     }
     
     public String getTitle() {

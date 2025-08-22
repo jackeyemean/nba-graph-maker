@@ -6,7 +6,7 @@
 }
 
 .App-header {
-  padding: 2rem 1rem;
+  padding: 1rem 1rem;
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -21,7 +21,7 @@
 .App-main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem 1rem;
 }
 
 .chat-interface {
