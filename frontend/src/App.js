@@ -4,6 +4,7 @@ import TemplateSelector from './components/TemplateSelector';
 import GraphForm from './components/GraphForm';
 import GraphDisplay from './components/GraphDisplay';
 import { TEMPLATES } from './constants';
+import { API_ENDPOINTS } from './config/api';
 
 function App() {
   const [templates, setTemplates] = useState([]);
@@ -28,7 +29,7 @@ function App() {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8080/api/graph/generate', {
+      const response = await fetch(API_ENDPOINTS.GENERATE_GRAPH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
