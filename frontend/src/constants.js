@@ -23,8 +23,8 @@ export const TEMPLATES = {
       { name: 'positions', label: 'Positions', type: 'multiselect', defaultValue: 'All' },
       { name: 'teamsFilter', label: 'Teams', type: 'multiselect', defaultValue: 'All' },
       { name: 'ageRange', label: 'Age', type: 'multiselect', defaultValue: 'All' },
-      { name: 'minGamesPlayed', label: 'Min Games', type: 'number', defaultValue: '25' },
-      { name: 'minMinutesPerGame', label: 'Min Minutes', type: 'number', defaultValue: '10' }
+      { name: 'minGamesPlayed', label: 'Min Games', type: 'number', defaultValue: '0' },
+      { name: 'minMinutesPerGame', label: 'Min Minutes', type: 'number', defaultValue: '0' }
     ]
   },
   season_correlation: {
@@ -40,8 +40,8 @@ export const TEMPLATES = {
       { name: 'positions', label: 'Positions', type: 'multiselect', defaultValue: 'All' },
       { name: 'teamsFilter', label: 'Teams', type: 'multiselect', defaultValue: 'All' },
       { name: 'ageRange', label: 'Age', type: 'multiselect', defaultValue: 'All' },
-      { name: 'minGamesPlayed', label: 'Min Games', type: 'number', defaultValue: '25' },
-      { name: 'minMinutesPerGame', label: 'Min Minutes', type: 'number', defaultValue: '10' }
+      { name: 'minGamesPlayed', label: 'Min Games', type: 'number', defaultValue: '0' },
+      { name: 'minMinutesPerGame', label: 'Min Minutes', type: 'number', defaultValue: '0' }
     ]
   }
 };
