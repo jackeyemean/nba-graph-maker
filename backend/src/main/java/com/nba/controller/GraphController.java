@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/graph")
-@CrossOrigin(origins = "${cors.allowed-origins:http://localhost:3000}")
+@CrossOrigin(origins = {"http://localhost:3000", "https://nba-graph-generator.onrender.com"})
 public class GraphController {
 
     @Autowired
