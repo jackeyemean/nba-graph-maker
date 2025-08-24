@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './GraphForm.css';
 import { AVAILABLE_STATS, POSITIONS, AWARDS, generateYears, generateAgeRanges } from '../constants';
+import { API_ENDPOINTS } from '../config/api';
 
 const GraphForm = ({ template, onGenerateGraph, loading }) => {
   const [formData, setFormData] = useState({});
@@ -107,8 +108,8 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
     try {
       // Only fetch dynamic data from API
       const [playersResponse, teamsResponse] = await Promise.all([
-        fetch('http://localhost:8080/api/graph/players'),
-        fetch('http://localhost:8080/api/graph/teams')
+        fetch(API_ENDPOINTS.GET_PLAYERS),
+        fetch(API_ENDPOINTS.GET_TEAMS)
       ]);
 
       const [players, teams] = await Promise.all([
