@@ -359,6 +359,35 @@ const GraphDisplay = ({ graphData, template }) => {
         return 'Turnovers Per Game';
       case 'personal_fouls':
         return 'Personal Fouls Per Game';
+      case 'field_goals_made':
+        return 'Field Goals Made Per Game';
+      case 'field_goals_attempted':
+        return 'Field Goals Attempted Per Game';
+      case 'two_pointers_made':
+        return '2-Pointers Made Per Game';
+      case 'two_pointers_attempted':
+        return '2-Pointers Attempted Per Game';
+      case 'two_point_percentage':
+        return '2-Point %';
+      case 'effective_field_goal_percentage':
+        return 'Effective Field Goal %';
+      case 'three_pointers_made':
+        return '3-Pointers Made Per Game';
+      case 'three_pointers_attempted':
+        return '3-Pointers Attempted Per Game';
+      case 'free_throws_made':
+        return 'Free Throws Made Per Game';
+      case 'free_throws_attempted':
+        return 'Free Throws Attempted Per Game';
+      // Additional rebounding stats
+      case 'offensive_rebounds':
+        return 'Offensive Rebounds Per Game';
+      case 'defensive_rebounds':
+        return 'Defensive Rebounds Per Game';
+      case 'games_played':
+        return 'Games Played';
+      case 'games_started':
+        return 'Games Started';
       default:
         return statName;
     }

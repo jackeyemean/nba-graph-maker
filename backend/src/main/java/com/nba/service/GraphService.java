@@ -196,11 +196,14 @@ public class GraphService {
         List<Double> values = new ArrayList<>();
         double min = Double.MAX_VALUE;
         double max = Double.MIN_VALUE;
+        int totalPlayers = data.size();
+        int validPlayers = 0;
         
         for (PlayerStats stat : data) {
             Double value = getValueForStat(stat, request.getStat());
             if (value != null) {
                 values.add(value);
+                validPlayers++;
                 if (value < min) min = value;
                 if (value > max) max = value;
             }
@@ -248,6 +251,23 @@ public class GraphService {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("binPlayers", binPlayers);
         metadata.put("stat", request.getStat());
+        
+        // Add data availability warnings
+        if (validPlayers < totalPlayers) {
+            Map<String, Object> warnings = new HashMap<>();
+            warnings.put("totalPlayers", totalPlayers);
+            warnings.put("validPlayers", validPlayers);
+            
+            String warningMessage = String.format(
+                "Note: %d out of %d players excluded due to missing %s data. " +
+                "This may be because some years don't track this statistic.",
+                totalPlayers - validPlayers, totalPlayers, getAxisLabel(request.getStat())
+            );
+            warnings.put("message", warningMessage);
+            
+            metadata.put("dataWarnings", warnings);
+        }
+        
         response.setMetadata(metadata);
         
         return response;
@@ -275,13 +295,24 @@ public class GraphService {
         List<GraphResponse.ScatterPoint> points = new ArrayList<>();
         Set<String> uniquePlayers = new HashSet<>(); // Track unique players for the list
         
-        for (PlayerStats stat : data) {
+        int totalPlayers = data.size();
+        int validPlayers = 0;
+        int missingXAxis = 0;
+        int missingYAxis = 0;
+        
+                for (PlayerStats stat : data) {
             Double xValue = getValueForStat(stat, xAxisStat);
             Double yValue = getValueForStat(stat, yAxisStat);
             
-
+            if (xValue == null) {
+                missingXAxis++;
+            }
+            if (yValue == null) {
+                missingYAxis++;
+            }
             
             if (xValue != null && yValue != null) {
+                validPlayers++;
                 GraphResponse.ScatterPoint point = new GraphResponse.ScatterPoint();
                 point.setX(xValue);
                 point.setY(yValue);
@@ -304,6 +335,27 @@ public class GraphService {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("xAxisStat", xAxisStat);
         metadata.put("yAxisStat", yAxisStat);
+        
+        // Add data availability warnings
+        if (missingXAxis > 0 || missingYAxis > 0) {
+            Map<String, Object> warnings = new HashMap<>();
+            warnings.put("totalPlayers", totalPlayers);
+            warnings.put("validPlayers", validPlayers);
+            warnings.put("missingXAxis", missingXAxis);
+            warnings.put("missingYAxis", missingYAxis);
+            
+            String warningMessage = String.format(
+                "Note: %d out of %d players excluded due to missing data. " +
+                "(%d missing %s data, %d missing %s data). " +
+                "This may be because some years don't track these statistics.",
+                totalPlayers - validPlayers, totalPlayers, 
+                missingXAxis, getAxisLabel(xAxisStat),
+                missingYAxis, getAxisLabel(yAxisStat)
+            );
+            warnings.put("message", warningMessage);
+            
+            metadata.put("dataWarnings", warnings);
+        }
         
         // Create sorted player list for display
         List<String> playerList = uniquePlayers.stream()
@@ -507,6 +559,33 @@ public class GraphService {
                 return stat.getTurnovers();
             case "personal_fouls":
                 return stat.getPersonalFouls();
+            // Additional shooting stats
+            case "field_goals_made":
+                return stat.getFieldGoalsMade();
+            case "field_goals_attempted":
+                return stat.getFieldGoalsAttempted();
+            case "two_pointers_made":
+                return stat.getTwoPointersMade();
+            case "two_pointers_attempted":
+                return stat.getTwoPointersAttempted();
+            case "two_point_percentage":
+                return stat.getTwoPointPercentage();
+            case "effective_field_goal_percentage":
+                return stat.getEffectiveFieldGoalPercentage();
+            case "three_pointers_made":
+                return stat.getThreePointersMade();
+            case "three_pointers_attempted":
+                return stat.getThreePointersAttempted();
+            case "free_throws_made":
+                return stat.getFreeThrowsMade();
+            case "free_throws_attempted":
+                return stat.getFreeThrowsAttempted();
+            // Additional rebounding stats
+            case "offensive_rebounds":
+                return stat.getOffensiveRebounds();
+            case "defensive_rebounds":
+                return stat.getDefensiveRebounds();
+
             default:
                 return null;
         }
@@ -548,6 +627,33 @@ public class GraphService {
                 return "Turnovers Per Game";
             case "personal_fouls":
                 return "Personal Fouls Per Game";
+            // Additional shooting stats
+            case "field_goals_made":
+                return "Field Goals Made Per Game";
+            case "field_goals_attempted":
+                return "Field Goals Attempted Per Game";
+            case "two_pointers_made":
+                return "2-Pointers Made Per Game";
+            case "two_pointers_attempted":
+                return "2-Pointers Attempted Per Game";
+            case "two_point_percentage":
+                return "2-Point %";
+            case "effective_field_goal_percentage":
+                return "Effective Field Goal %";
+            case "three_pointers_made":
+                return "3-Pointers Made Per Game";
+            case "three_pointers_attempted":
+                return "3-Pointers Attempted Per Game";
+            case "free_throws_made":
+                return "Free Throws Made Per Game";
+            case "free_throws_attempted":
+                return "Free Throws Attempted Per Game";
+            // Additional rebounding stats
+            case "offensive_rebounds":
+                return "Offensive Rebounds Per Game";
+            case "defensive_rebounds":
+                return "Defensive Rebounds Per Game";
+
             default:
                 return axisType;
         }

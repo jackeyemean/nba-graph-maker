@@ -472,7 +472,7 @@ const GraphForm = ({ template, onGenerateGraph, loading }) => {
         } else if (field.name === 'xAxisType') {
           selectOptions = ['age', 'year']; // Only age and year make sense for X-axis in line graphs
         } else if (field.name === 'yAxisType') {
-          selectOptions = ['age', 'year', 'points', 'assists', 'rebounds', 'steals', 'blocks', 'minutes_per_game', 'field_goal_percentage', 'three_point_percentage', 'free_throw_percentage', 'turnovers', 'personal_fouls'];
+          selectOptions = ['age', 'year', ...(options.stats || [])];
         }
         
         return (

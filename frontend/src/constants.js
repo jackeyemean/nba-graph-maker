@@ -49,7 +49,11 @@ export const TEMPLATES = {
 export const AVAILABLE_STATS = [
   'points', 'assists', 'rebounds', 'steals', 'blocks', 'turnovers',
   'field_goal_percentage', 'three_point_percentage', 'free_throw_percentage',
-  'minutes_per_game', 'games_played', 'age'
+  'minutes_per_game', 'games_played', 'age', 'games_started',
+  'field_goals_made', 'field_goals_attempted', 'two_pointers_made', 'two_pointers_attempted',
+  'two_point_percentage', 'effective_field_goal_percentage', 'three_pointers_made',
+  'three_pointers_attempted', 'free_throws_made', 'free_throws_attempted',
+  'offensive_rebounds', 'defensive_rebounds', 'personal_fouls'
 ];
 
 export const POSITIONS = [
