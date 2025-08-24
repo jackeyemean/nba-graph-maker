@@ -44,12 +44,14 @@
   display: block;
 }
 
-/* Make X and Y axis filters take up the second row */
-.form-field:has(select[value*="xAxis"]) {
+/* Make X and Y axis filters take up the second row on desktop */
+.form-field.xAxisType,
+.player-comparison-grid .form-field.xAxisType {
   grid-column: 1 / 2;
 }
 
-.form-field:has(select[value*="yAxis"]) {
+.form-field.yAxisType,
+.player-comparison-grid .form-field.yAxisType {
   grid-column: 2 / 3;
 }
 
@@ -67,6 +69,12 @@
 .player-comparison-grid .form-field.yAxisType {
   grid-column: 2;
   grid-row: 2;
+}
+
+/* Make players field always take full width - override any other grid rules */
+.form-field.players,
+.player-comparison-grid .form-field.players {
+  grid-column: 1 / -1 !important;
 }
 
 .form-field {
@@ -135,6 +143,7 @@
   top: 100%;
   left: 0;
   right: 0;
+  width: 100%;
   background: white;
   border: 2px solid #e1e5e9;
   border-top: none;
@@ -380,6 +389,16 @@
 @media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  /* On mobile, X and Y axis fields stack naturally */
+  .form-field.xAxisType,
+  .form-field.yAxisType,
+  .player-comparison-grid .form-field.xAxisType,
+  .player-comparison-grid .form-field.yAxisType {
+    grid-column: 1 / -1;
+    grid-row: auto; /* Reset grid row to let them stack naturally */
   }
   
   .graph-form {
@@ -389,6 +408,38 @@
   .generate-button {
     width: 100%;
     min-width: auto;
+    padding: 16px 32px; /* Larger touch target */
+  }
+  
+  .form-field input,
+  .form-field select {
+    padding: 12px; /* Larger touch target */
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .player-option {
+    padding: 12px; /* Larger touch target */
+  }
+}
+
+@media (max-width: 480px) {
+  .graph-form {
+    padding: 12px;
+  }
+  
+  .form-grid {
+    gap: 12px;
+  }
+}
+
+/* Stack X and Y axis on smaller screens */
+@media (max-width: 600px) {
+  .form-field.xAxisType,
+  .form-field.yAxisType,
+  .player-comparison-grid .form-field.xAxisType,
+  .player-comparison-grid .form-field.yAxisType {
+    grid-column: 1 / -1;
+    grid-row: auto; /* Reset grid row to let them stack naturally */
   }
 }
 

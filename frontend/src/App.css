@@ -9,6 +9,29 @@
   padding: 1rem 1rem;
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.github-link {
+  display: flex;
+  align-items: center;
+  color: #374151;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.github-link:hover {
+  color: #111827;
+}
+
+.github-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
 }
 
 .App-header h1 {
@@ -143,5 +166,29 @@
   
   .chart-container {
     height: 400px;
+  }
+  
+  .github-link {
+    font-size: 12px;
+  }
+  
+  .github-link {
+    padding: 0; /* Remove padding constraints */
+  }
+  
+  .github-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px; /* Keep consistent spacing */
+  }
+}
+
+@media (max-width: 480px) {
+  .App-header {
+    padding: 0.75rem;
+  }
+  
+  .App-main {
+    padding: 0.5rem;
   }
 }
