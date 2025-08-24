@@ -750,6 +750,50 @@ public class GraphService {
                     }
                 }
                 
+                // Handle ROY awards (ROY-1, ROY-2, etc.) - ROY should be treated as ROY-1
+                if (trimmedAward.startsWith("ROY-")) {
+                    try {
+                        int place = Integer.parseInt(trimmedAward.substring(4));
+                        return place <= 5;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // Handle NBA awards (NBA1, NBA2, NBA3) - no dash
+                if (trimmedAward.startsWith("NBA")) {
+                    try {
+                        // Extract number from NBA1, NBA2, NBA3
+                        String numberPart = trimmedAward.substring(3);
+                        int place = Integer.parseInt(numberPart);
+                        return place <= 3; // Only top 3 for NBA
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // Handle DEF awards (DEF1, DEF2) - no dash
+                if (trimmedAward.startsWith("DEF")) {
+                    try {
+                        // Extract number from DEF1, DEF2
+                        String numberPart = trimmedAward.substring(3);
+                        int place = Integer.parseInt(numberPart);
+                        return place <= 2; // Only top 2 for DEF
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
+                // Handle MIP awards (MIP-1 only)
+                if (trimmedAward.startsWith("MIP-")) {
+                    try {
+                        int place = Integer.parseInt(trimmedAward.substring(4));
+                        return place == 1; // Only MIP-1
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                }
+                
                 // For other awards with place numbers (e.g., "All-NBA-1", "All-Defense-2")
                 if (trimmedAward.contains("-")) {
                     String[] parts = trimmedAward.split("-");
@@ -813,8 +857,8 @@ public class GraphService {
             return 5;
         }
         
-        // ROY (Rookie of the Year)
-        if (trimmedAward.equals("ROY")) {
+        // ROY awards (ROY-1, ROY-2, etc.)
+        if (trimmedAward.startsWith("ROY-")) {
             return 6;
         }
         
@@ -823,8 +867,8 @@ public class GraphService {
             return 7;
         }
         
-        // MIP-1 (Most Improved Player)
-        if (trimmedAward.equals("MIP-1")) {
+        // MIP awards (MIP-1, MIP-2, etc.)
+        if (trimmedAward.startsWith("MIP-")) {
             return 8;
         }
         

@@ -65,9 +65,11 @@ export const AWARDS = [
   'MVP-1', 'MVP-2', 'MVP-3', 'MVP-4', 'MVP-5',
   'AS',
   'DPOY-1', 'DPOY-2', 'DPOY-3', 'DPOY-4', 'DPOY-5', 
-  'NBA-1', 'NBA-2', 'NBA-3',
-  'DEF-1', 'DEF-2',
-  'ROY', '6MOY-1', '6MOY-2', 'MIP'
+  'NBA1', 'NBA2', 'NBA3',
+  'DEF1', 'DEF2',
+  'ROY-1', 'ROY-2', 'ROY-3', 'ROY-4', 'ROY-5',
+  '6MOY-1', '6MOY-2', '6MOY-3', '6MOY-4', '6MOY-5',
+  'MIP-1'
 ];
 
 export const generateYears = () => {
