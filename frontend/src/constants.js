@@ -57,7 +57,7 @@ export const AVAILABLE_STATS = [
 ];
 
 export const POSITIONS = [
-  'All', 'PG', 'SG', 'SF', 'PF', 'C', 'G', 'F', 'G-F', 'F-G'
+  'All', 'PG', 'SG', 'SF', 'PF', 'C'
 ];
 
 export const AWARDS = [
