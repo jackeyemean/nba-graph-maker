@@ -823,8 +823,8 @@ public class GraphService {
             return 7;
         }
         
-        // MIP (Most Improved Player)
-        if (trimmedAward.equals("MIP")) {
+        // MIP-1 (Most Improved Player)
+        if (trimmedAward.equals("MIP-1")) {
             return 8;
         }
         
