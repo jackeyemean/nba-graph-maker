@@ -61,8 +61,6 @@ The following indexes are created for optimal query performance:
 - `idx_nba_stats_position` - For filtering by position
 - `idx_nba_stats_year_player` - For queries combining year and player
 
-## Usage Notes
+## Notes
 - All percentage values are stored as decimals (e.g., 0.450 for 45.0%)
 - NULL values indicate missing or unavailable data
-- The database is designed for read-heavy analytical queries
-- Consider using appropriate WHERE clauses for large datasets

@@ -76,7 +76,6 @@ def create_unified_table():
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
-        # Create the unified NBA stats table
         cursor.execute("""
             CREATE TABLE nba_stats (
                 id SERIAL PRIMARY KEY,
@@ -115,7 +114,6 @@ def create_unified_table():
             )
         """)
         
-        # Create indexes for better performance
         cursor.execute("CREATE INDEX idx_nba_stats_year ON nba_stats(year)")
         cursor.execute("CREATE INDEX idx_nba_stats_player ON nba_stats(player)")
         cursor.execute("CREATE INDEX idx_nba_stats_team ON nba_stats(team)")
@@ -125,7 +123,6 @@ def create_unified_table():
         cursor.execute("CREATE INDEX idx_nba_stats_age ON nba_stats(age)")
         cursor.execute("CREATE INDEX idx_nba_stats_awards ON nba_stats USING gin(string_to_array(awards, ','))")
         
-        # Composite indexes for common query patterns
         cursor.execute("CREATE INDEX idx_nba_stats_year_games_minutes ON nba_stats(year, games_played, minutes_per_game)")
         cursor.execute("CREATE INDEX idx_nba_stats_year_position ON nba_stats(year, position)")
         cursor.execute("CREATE INDEX idx_nba_stats_year_team ON nba_stats(year, team)")
@@ -184,7 +181,7 @@ def import_data():
         
         # Get all CSV files
         csv_files = glob.glob('data/NBA_*.csv')
-        csv_files.sort()  # Sort to process in chronological order
+        csv_files.sort()
         
         print(f"Found {len(csv_files)} CSV files to import")
         
@@ -198,12 +195,11 @@ def import_data():
                 
             print(f"Processing {csv_file} (Year: {year})")
             
-            # Read CSV file
             df = pd.read_csv(csv_file)
             
             # Process each row
             for _, row in df.iterrows():
-                # Prepare data for insertion - handle missing columns gracefully
+                # Prepare data for insertion
                 stats_data = {
                     'year': year,
                     'player': row['Player'],
